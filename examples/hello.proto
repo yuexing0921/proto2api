@@ -1,0 +1,30 @@
+
+syntax = "proto3";
+package hello;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+message InfoReq {
+    int32 id = 1; // id
+    string user_name = 2 [json_name = "userName"]; 
+    
+}
+message InfoResp {
+    int32 ret_code = 1 [json_name = "retCode"];
+    string ret_msg = 2  [json_name = "retMsg"];
+}
+
+service API {
+    rpc GetDemo(google.protobuf.Empty) returns (InfoResp) {
+        option (google.api.http) = {
+            get: "/get"
+            body: "*"
+          };
+    }
+    rpc PostDemo(InfoReq) returns (InfoResp) {
+        option (google.api.http) = {
+            post: "/post"
+        };
+    }
+}

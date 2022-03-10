@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+"use strict";
+const { Command } = require("commander"); // include commander in git clone of commander repo
+const path = require("path");
+const fse = require("fs-extra");
+const { Glob } = require("glob");
+const pkg = require("../package.json");
+const resolve = (p) => path.resolve(p);
+const program = new Command();
+
+program
+  .version(pkg.version)
+  .option("--debug", "Load code with ts-node for debug")
+  .requiredOption(
+    "-d, --dir <type>",
+    "Directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto"
+  )
+  .requiredOption("-o, --output <type>", "Output api path")
+  .option("--apiName <type>", "apiName", "webapi")
+  .option("--apiPath <type>", "apiPath", "~/utils/api")
+  .description(pkg.description)
+  .action(async (opt) => {
+    const dirPath = resolve(opt.dir);
+    if (!fse.existsSync(dirPath)) {
+      console.error(`The address ${dirPath} does not exist`);
+      return process.exit(1);
+    }
+    let files = [];
+    if (opt.dir.endsWith(".proto")) {
+      files.push(dirPath);
+    } else {
+      files = await getPathsDir(dirPath + "/**/*.proto");
+    }
+
+    const devMode = opt.debug;
+
+    const output = resolve(opt.output);
+
+    const options = {
+      files,
+      output: output.endsWith("/") ? output : output + "/",
+      apiName: opt.apiName,
+      apiPath: opt.apiPath,
+    };
+    console.log(options);
+    if (devMode) {
+      require("ts-node").register({
+        project: `${__dirname}/../tsconfig.spec.json`,
+      });
+      const { main } = require(`${__dirname}/../src/index`);
+      main(options);
+    } else {
+      const { main } = require(`${__dirname}/../dist/index`);
+      main(options);
+    }
+  });
+
+program.parse();
+
+function getPathsDir(dir) {
+  return new Promise((resolve, reject) => {
+    new Glob(dir, { mark: true, sync: false }, (err, files) => {
+      if (err) {
+        console.error("Glob error: ", err);
+        return reject(err);
+      }
+      resolve(files);
+    });
+  });
+}
