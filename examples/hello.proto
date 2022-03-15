@@ -5,6 +5,12 @@ package hello;
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 
+enum Status {
+    UNKNOWN = 0;
+    // 新创建
+    NEW = 1;
+  }
+
 message InfoReq {
     int32 id = 1; // id
     string user_name = 2 [json_name = "userName"]; 
@@ -13,6 +19,7 @@ message InfoReq {
 message InfoResp {
     int32 ret_code = 1 [json_name = "retCode"];
     string ret_msg = 2  [json_name = "retMsg"];
+    Status status = 3;
 }
 
 service API {
