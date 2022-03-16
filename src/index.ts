@@ -1,4 +1,4 @@
-import { WalkProto, Options } from "./parse";
+import { Options, run } from "./parse";
 export * from "./parse";
 export * from "./apiInterface";
 export * from "./core";
@@ -6,5 +6,5 @@ export * from "./genTsApi";
 export * from "./utils";
 
 export function main(options: Options) {
-  new WalkProto(options).run();
+  run(options);
 }

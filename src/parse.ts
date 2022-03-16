@@ -25,147 +25,133 @@ export interface Options {
   apiPath?: string;
 }
 
-export class WalkProto {
-  opts: Options;
+export function run(options: Options) {
+  const apiFileMap: { [fileName: string]: ApiFile } = {};
+  const { apiDir, root, pbFilesPath } = parseProto(options.files);
+  pbFilesPath.forEach((file) => {
+    apiFileMap[file] = {
+      path: "",
+      comment: "",
+      imports: [],
+      enums: [],
+      interfaces: [],
+      apiModules: [],
+    };
+  });
 
-  private apiFileMap: { [fileName: string]: ApiFile } = {};
-
-  private protoFiles: string[] = [];
-
-  private apiDir: string = "";
-
-  constructor(options: Options) {
-    this.protoFiles = options.files;
-    this.opts = options;
-    this.apiDir = options.protoDir;
-  }
-
-  private walkEnum(item: protoJs.Enum) {
-    const apiFile = this.apiFileMap[item.filename];
-    const _enum = enumFiledToEnum(item);
-    const { parent } = item;
-    // 说明是内嵌的enum，则该enum需要定义在parent 的module内
-    if (isType(parent)) {
-      const parentInterface = findOrInsertParentInterfaceByName(
-        apiFile,
-        parent.name,
-        parent.comment
-      );
-      parentInterface.module.enums.push(_enum);
-    }
-
-    if (isNamespace(parent)) {
-      const index = apiFile.interfaces.findIndex((k) => k.name === item.name);
-      if (index === -1) {
-        apiFile.enums.push(_enum);
-      } else {
-        apiFile.enums[index] = _enum;
-      }
-    }
-  }
-
-  private walkService(item: protoJs.Service) {
-    const apiFile = this.apiFileMap[item.filename];
-    const apiModule = serviceFiledToApiFunction(item);
-    apiFile.apiModules.push(apiModule);
-  }
-
-  private walkType(item: protoJs.Type) {
-    const apiFile = this.apiFileMap[item.filename];
-
-    const { parent } = item;
-    const _interface = typeFiledToInterface(item);
-    // 说明是内嵌的message，则该interface需要定义在parent 的module内
-    if (isType(parent)) {
-      const parentInterface = findOrInsertParentInterfaceByName(
-        apiFile,
-        parent.name,
-        parent.comment
-      );
-      parentInterface.module.interfaces.push(_interface);
-    }
-
-    if (isNamespace(parent)) {
-      const index = apiFile.interfaces.findIndex((k) => k.name === item.name);
-      if (index === -1) {
-        apiFile.interfaces.push(_interface);
-      } else {
-        apiFile.interfaces[index].members = _interface.members;
-      }
-    }
-  }
-
-  // core
-  private walkTree(item: protoJs.Root): void {
+  const walkTree = (item: protoJs.Root) => {
     if (item.nested) {
       Object.keys(item.nested).forEach((key) => {
-        this.walkTree(item.nested[key] as protoJs.Root);
+        walkTree(item.nested[key] as protoJs.Root);
       });
     }
     // 过滤非common 的item
     if (item.filename) {
-      isType(item) && this.walkType(item as any);
-      isEnum(item) && this.walkEnum(item as any);
-      isService(item) && this.walkService(item as any);
+      isType(item) && walkType(item as any, apiFileMap[item.filename]);
+      isEnum(item) && walkEnum(item as any, apiFileMap[item.filename]);
+      isService(item) && walkService(item as any, apiFileMap[item.filename]);
     }
+  };
+  // outputFileSync("root.json", JSON.stringify(root.nested, null, 4));
+  walkTree(root);
+  const result = genFileMapData(
+    apiFileMap,
+    apiDir,
+    options.output,
+    options.apiName,
+    options.apiPath
+  );
+
+  for (const filePath in result) {
+    outputFileSync(filePath, result[filePath], "utf8");
   }
+}
 
-  private parse(): void {
-    const root = new protoJs.Root();
-
-    // 对import的文件进行解析，获取绝对路径
-    root.resolvePath = (origin, target) => {
-      if (root.nested && root.files.length > 0 && !this.apiDir) {
-        const keys = Object.keys(root.nested);
-        const firstPath = root.files[0];
-        this.apiDir = firstPath.slice(0, firstPath.indexOf(keys[0]));
-      }
-
-      let file;
-
-      if (existsSync(target)) {
-        file = target;
-      } else {
-        file = resolve(this.apiDir, target);
-      }
-
-      this.apiFileMap[file] = {
-        path: "",
-        comment: "",
-        imports: [],
-        enums: [],
-        interfaces: [],
-        apiModules: [],
-      };
-      return file;
-    };
-
-    root
-      .loadSync(this.protoFiles, {
-        keepCase: true,
-        alternateCommentMode: true,
-      })
-      .resolveAll();
-
-    this.walkTree(root);
-    // outputFileSync("root.json", JSON.stringify(root.nested, null, 4));
-  }
-
-  private genFile() {
-    const result = genFileMapData(
-      this.apiFileMap,
-      this.apiDir,
-      this.opts.output,
-      this.opts.apiName || "webapi",
-      this.opts.apiPath || "~/utils/webapi"
+export function walkEnum(item: protoJs.Enum, apiFile: ApiFile) {
+  const _enum = enumFiledToEnum(item);
+  const { parent } = item;
+  // 说明是内嵌的enum，则该enum需要定义在parent 的module内
+  if (isType(parent)) {
+    const parentInterface = findOrInsertParentInterfaceByName(
+      apiFile,
+      parent.name,
+      parent.comment
     );
+    parentInterface.module.enums.push(_enum);
+  }
 
-    for (const filePath in result) {
-      outputFileSync(filePath, result[filePath], "utf8");
+  if (isNamespace(parent)) {
+    const index = apiFile.interfaces.findIndex((k) => k.name === item.name);
+    if (index === -1) {
+      apiFile.enums.push(_enum);
+    } else {
+      apiFile.enums[index] = _enum;
     }
   }
-  public run() {
-    this.parse();
-    this.genFile();
+}
+
+export function walkService(item: protoJs.Service, apiFile: ApiFile) {
+  const apiModule = serviceFiledToApiFunction(item);
+  apiFile.apiModules.push(apiModule);
+}
+
+export function walkType(item: protoJs.Type, apiFile: ApiFile) {
+  const { parent } = item;
+  const _interface = typeFiledToInterface(item);
+  // 说明是内嵌的message，则该interface需要定义在parent 的module内
+  if (isType(parent)) {
+    const parentInterface = findOrInsertParentInterfaceByName(
+      apiFile,
+      parent.name,
+      parent.comment
+    );
+    parentInterface.module.interfaces.push(_interface);
   }
+
+  if (isNamespace(parent)) {
+    const index = apiFile.interfaces.findIndex((k) => k.name === item.name);
+    if (index === -1) {
+      apiFile.interfaces.push(_interface);
+    } else {
+      apiFile.interfaces[index].members = _interface.members;
+    }
+  }
+}
+
+export function parseProto(protoFiles: string[]) {
+  const root = new protoJs.Root();
+  let apiDir = "";
+  const pbFilesPath = [];
+
+  // Parse the imported PB to get the absolute path
+  root.resolvePath = (origin, target) => {
+    if (root.nested && root.files.length > 0 && !apiDir) {
+      const keys = Object.keys(root.nested);
+      const firstPath = root.files[0];
+      apiDir = firstPath.slice(0, firstPath.indexOf(keys[0]));
+    }
+
+    let file;
+
+    if (existsSync(target)) {
+      file = target;
+    } else {
+      file = resolve(apiDir, target);
+    }
+    pbFilesPath.push(file);
+    return file;
+  };
+
+  root
+    .loadSync(protoFiles, {
+      keepCase: true,
+      alternateCommentMode: true,
+    })
+    .resolveAll();
+
+  return {
+    root,
+    apiDir,
+    pbFilesPath,
+  };
 }
