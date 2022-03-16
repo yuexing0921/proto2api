@@ -146,6 +146,7 @@ export function renderInterface(list: Interface[]) {
     .join("\n\n");
 }
 
+const configStr = "config?";
 /**
  * list  = [{
  *  name: 'getStatus',
@@ -166,15 +167,15 @@ export function renderInterface(list: Interface[]) {
 export function renderFunction(list: ApiFunction[], apiName: string) {
   const renderReturn = (k: ApiFunction) => {
     if (k.req) {
-      return ` return ${apiName}.${k.method}<${k.res}>('${k.url}', req)`;
+      return ` return ${apiName}.${k.method}<${k.res}>('${k.url}', req, config)`;
     } else {
-      return ` return ${apiName}.${k.method}<${k.res}>('${k.url}')`;
+      return ` return ${apiName}.${k.method}<${k.res}>('${k.url}', {}, config)`;
     }
   };
 
   return list
     .map((k) => {
-      const reqStr = k.req ? `req: Partial<${k.req}>` : "";
+      const reqStr = k.req ? `req: Partial<${k.req}>, ${configStr}` : configStr;
       return `${renderComment(k.comment)}export function ${k.name}(${reqStr}){
             ${renderReturn(k)}
         }`;
@@ -207,8 +208,6 @@ export function genApiFileCode(apiInfo: ApiFile, apiName: string) {
   `;
 }
 
-
-
 /**
  * Read filePath from resolvedPath, get import
  * @param k
@@ -216,12 +215,7 @@ export function genApiFileCode(apiInfo: ApiFile, apiName: string) {
  * @param apiDir
  * @param apiFile
  */
-function convertImport(
-  k: Interface,
-  fileName: string,
-  apiDir: string,
-  apiFile: ApiFile
-) {
+function convertImport(k: Interface, fileName: string, apiFile: ApiFile) {
   for (const index in k.members) {
     const m = k.members[index];
 
@@ -271,11 +265,9 @@ export function genFileMapData(
   for (const fileName in apiFileMap) {
     const apiFile = apiFileMap[fileName];
     apiFile.interfaces.forEach((k) => {
-      convertImport(k, fileName, apiDir, apiFile);
+      convertImport(k, fileName, apiFile);
       if (k.module && k.module.interfaces.length > 0) {
-        k.module.interfaces.forEach((k) =>
-          convertImport(k, fileName, apiDir, apiFile)
-        );
+        k.module.interfaces.forEach((k) => convertImport(k, fileName, apiFile));
       }
     });
 
