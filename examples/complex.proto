@@ -1,0 +1,55 @@
+
+syntax = "proto3";
+package complex;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/api.proto";
+
+
+enum Status {
+    UNKNOWN = 0;
+    NEW = 1;
+}
+ 
+
+message InfoReq {
+    int32 id = 1; // id
+    string user_name = 2 [json_name = "userName"]; 
+    // rely on its own message
+    enum InlineStatus {
+        UNKNOWN = 0;
+        NEW = 1;
+    }
+    InlineStatus inlineStatus = 3;
+    message InlineItem {
+        string id = 1;
+    }
+    InlineItem item = 4;
+
+    // Depends on the message of the current file
+    Status status = 5;
+
+    // Externally dependent messages
+    google.protobuf.Method method = 6;
+    
+}
+message InfoResp {
+    int32 ret_code = 1 [json_name = "retCode"];
+    string ret_msg = 2  [json_name = "retMsg"];
+    Status status = 3;
+}
+
+service API {
+    rpc GetDemo(google.protobuf.Empty) returns (InfoResp) {
+        option (google.api.http) = {
+            get: "/get"
+            body: "*"
+          };
+    }
+    rpc PostDemo(InfoReq) returns (InfoResp) {
+        option (google.api.http) = {
+            post: "/post"
+        };
+    }
+}
