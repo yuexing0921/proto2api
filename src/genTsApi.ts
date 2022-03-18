@@ -184,7 +184,6 @@ export function renderFunction(list: ApiFunction[], apiName: string) {
 }
 
 export function renderApiModule(list: ApiModule[], apiName: string) {
-  // 用于生成namespace
   // return list
   //   .map(
   //     (k) => `${renderComment(k.comment)}export namespace ${k.name}{
