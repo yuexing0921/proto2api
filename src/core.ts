@@ -4,8 +4,9 @@ import {
   Interface,
   Enum,
   PropertySignature,
-  ApiFile,
   ApiModule,
+  InterfaceModule,
+  DependencyType,
 } from "./apiInterface";
 
 export function isEnum(obj) {
@@ -34,28 +35,26 @@ function getGoogleCommon(typeStr: string) {
   return typeStr === "google.protobuf.Empty" ? "{}" : typeStr;
 }
 
-export function initialInterface(
-  name: string,
-  comment?: string,
-  isInitModule: boolean = false
-): Interface {
-  const result: Interface = {
-    name,
-    comment,
-    members: [],
+export function typeGenInterfaceModule(child: protoJs.Type): InterfaceModule {
+  const result: InterfaceModule = {
+    name: child.name,
+    comment: `This the module of ${child.name}`,
+    enums: [],
+    interfaces: [],
   };
-  if (isInitModule) {
-    result.module = {
-      comment: `This the module of ${name}`,
-      name,
-      enums: [],
-      interfaces: [],
-    };
-  }
+  Object.keys(child.nested).forEach((key) => {
+    const item = child.nested[key];
+    if (isType(item)) {
+      result.interfaces.push(typeGenInterface(item as any));
+    }
+    if (isEnum(item)) {
+      result.enums.push(enumGenEnum(item as any));
+    }
+  });
   return result;
 }
 
-export function typeFiledToInterface(item: protoJs.Type): Interface {
+export function typeGenInterface(item: protoJs.Type): Interface {
   const result: Interface = {
     name: item.name,
     comment: item.comment,
@@ -72,6 +71,7 @@ export function typeFiledToInterface(item: protoJs.Type): Interface {
     const member: PropertySignature = {
       name: field.name,
       type: field.type,
+      dependencyType: DependencyType.SYSTEM,
       comment: field.comment,
 
       // @ts-ignorets
@@ -87,7 +87,20 @@ export function typeFiledToInterface(item: protoJs.Type): Interface {
       member.type =
         getGoogleCommon(field.type) != "{}" ? field.resolvedType.name : "{}";
       // write reference path
-      member.resolvedPath = field.resolvedType.filename;
+      member.resolvedPath =
+        field.filename === field.resolvedType.filename
+          ? ""
+          : field.resolvedType.filename;
+
+      if (field.filename === field.resolvedType.filename) {
+        if (field.resolvedType.parent.name === item.name) {
+          member.dependencyType = DependencyType.INLINE;
+        } else {
+          member.dependencyType = DependencyType.CURRENT;
+        }
+      } else {
+        member.dependencyType = DependencyType.EXTERNAL;
+      }
     }
     result.members.push(member);
   }
@@ -95,7 +108,7 @@ export function typeFiledToInterface(item: protoJs.Type): Interface {
   return result;
 }
 
-export function enumFiledToEnum(item: protoJs.Enum): Enum {
+export function enumGenEnum(item: protoJs.Enum): Enum {
   const result: Enum = {
     name: item.name,
     comment: item.comment,
@@ -133,7 +146,7 @@ const getHttpType = (options) => {
   };
 };
 
-export function serviceFiledToApiFunction(item: protoJs.Service): ApiModule {
+export function serviceGenApiFunction(item: protoJs.Service): ApiModule {
   const result: ApiModule = {
     comment: item.comment,
     name: item.name,
@@ -150,30 +163,4 @@ export function serviceFiledToApiFunction(item: protoJs.Service): ApiModule {
     }),
   };
   return result;
-}
-
-export function findNamespaceName(
-  root: protoJs.Namespace,
-  name: string = ""
-): string {
-  const parentName = root.parent.name;
-  if (parentName) {
-    return findNamespaceName(root.parent, name);
-  } else {
-    return name;
-  }
-}
-
-export function findOrInsertParentInterfaceByName(
-  apiFile: ApiFile,
-  name: string,
-  comment: string
-): Interface {
-  let parentInterface = apiFile.interfaces.find((k) => k.name === name);
-
-  if (!parentInterface) {
-    parentInterface = initialInterface(name, comment, true);
-    apiFile.interfaces.push(parentInterface);
-  }
-  return parentInterface;
 }
