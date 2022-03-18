@@ -14,10 +14,41 @@ export interface Enum {
   comment?: string;
   members: EnumMember[];
 }
+// The type of the dependent element in the message
+export enum DependencyType {
+  // message Info{
+  //   int32 code = 1;
+  //   enum Item {
+  //     xxx = 1;
+  //   }
+  //   Item item = 2;
+  // }
+  INLINE = "inline",
 
+  // message Info{
+  //   int32 code = 1;
+  //   google.protobuf.Method method = 2;
+  // }
+  EXTERNAL = "external",
+
+  // message Item{
+  //   string id = 1;
+  // }
+  // message Info{
+  //   int32 code = 1;
+  //   Item item = 2;
+  // }
+  CURRENT = "current",
+
+  // message Info{
+  //   int32 code = 1;
+  // }
+  SYSTEM = "system",
+}
 export interface PropertySignature {
   name: string;
   type: string;
+  dependencyType: DependencyType; // default 'system'
   comment?: string;
 
   // map<keyType, type>
@@ -34,7 +65,6 @@ export interface PropertySignature {
   // If there is an external reference file,
   // the referenced file address will be written
   resolvedPath?: string;
-  
 }
 
 export interface InterfaceModule {
