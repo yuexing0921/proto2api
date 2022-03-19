@@ -16,6 +16,7 @@ import {
   interfaceGenImport,
 } from "./core";
 import { pbDataGenApiData } from "./genTsApi";
+import { log, success } from "./utils";
 
 export interface Options {
   files: string[]; // proto file
@@ -23,14 +24,19 @@ export interface Options {
   protoDir?: string; // proto dir
   apiName?: string;
   apiPath?: string;
+  ignore?: RegExp; // ignore
 }
 
 export function run(options: Options) {
+  log("Loading PB file ......");
   const apiFileMap: { [fileName: string]: ApiFile } = {};
 
   const { apiDir, root, pbFilesPath } = parseProto(options.files);
-  pbFilesPath.forEach((file) => {
-    apiFileMap[file] = {
+  for (const filePath of pbFilesPath) {
+    if (options?.ignore?.test(filePath)) {
+      continue;
+    }
+    apiFileMap[filePath] = {
       path: "",
       comment: "",
       imports: [],
@@ -38,7 +44,7 @@ export function run(options: Options) {
       interfaces: [],
       apiModules: [],
     };
-  });
+  }
 
   const visitRoot = (item: protoJs.Root) => {
     if (item.nested && !isType(item)) {
@@ -47,8 +53,8 @@ export function run(options: Options) {
         visitRoot(item.nested[key] as protoJs.Root);
       });
     }
-    if (item.filename) {
-      const apiFile = apiFileMap[item.filename];
+    const apiFile = apiFileMap[item.filename];
+    if (item.filename && apiFile) {
       // Generate corresponding data for service
       if (isService(item)) {
         apiFile.apiModules.push(serviceGenApiFunction(item as any));
@@ -72,7 +78,7 @@ export function run(options: Options) {
   };
   // outputFileSync("root.json", JSON.stringify(root.nested, null, 4));
   visitRoot(root);
-
+  log("Convert PB data to api data");
   const result = pbDataGenApiData(
     apiFileMap,
     apiDir,
@@ -83,6 +89,8 @@ export function run(options: Options) {
 
   for (const filePath in result) {
     outputFileSync(filePath, result[filePath], "utf8");
+    success(`${filePath} generated successfully`);
+    console.log();
   }
 }
 

@@ -18,6 +18,11 @@ program
   .requiredOption("-o, --output <type>", "Output api path")
   .option("--apiName <type>", "apiName", "webapi")
   .option("--apiPath <type>", "apiPath", "~/utils/api")
+  .option(
+    "--ignore [ignore...]",
+    "Ignore unnecessary generated pb files",
+    "google|swagger"
+  )
   .description(pkg.description)
   .action(async (opt) => {
     const dirPath = resolve(opt.dir);
@@ -36,12 +41,22 @@ program
 
     const output = resolve(opt.output);
 
+    let ignore;
+    if (typeof opt.ignore === "string") {
+      ignore = new RegExp(opt.ignore);
+    } else {
+      ignore =
+        opt.ignore && opt.ignore.join ? new RegExp(opt.ignore.join("|")) : null;
+    }
+
     const options = {
       files,
       output: output.endsWith("/") ? output : output + "/",
       apiName: opt.apiName,
       apiPath: opt.apiPath,
+      ignore,
     };
+
     console.log(options);
     if (devMode) {
       require("ts-node").register({
