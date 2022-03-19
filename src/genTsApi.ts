@@ -8,6 +8,7 @@ import {
   InterfaceModule,
   ApiModule,
   ApiFunction,
+  DependencyType,
 } from "./apiInterface";
 
 import { format, getRelativePathABDepth } from "./utils";
@@ -207,49 +208,7 @@ export function genApiFileCode(apiInfo: ApiFile, apiName: string) {
   `;
 }
 
-/**
- * Read filePath from resolvedPath, get import
- * @param k
- * @param fileName
- * @param apiDir
- * @param apiFile
- */
-function convertImport(k: Interface, fileName: string, apiFile: ApiFile) {
-  for (const index in k.members) {
-    const m = k.members[index];
-
-    if (!m.resolvedPath) {
-      continue;
-    }
-    if (m.resolvedPath === fileName) {
-      // 如果是引用的文件和当前fileName是一致的
-      // 先从module interface、enum 找到
-      const moduleInter = k.module?.interfaces.find((i) => i.name === m.type);
-      moduleInter && (m.type = k.module?.name + "." + m.type);
-      const moduleEnum = k.module?.enums.find((i) => i.name === m.type);
-      moduleEnum && (m.type = k.module?.name + "." + m.type);
-    } else {
-      const pathA = m.resolvedPath.replace(".proto", "");
-      const pathB = fileName.slice(0, fileName.lastIndexOf("/"));
-      const moduleSpecifier = getRelativePathABDepth(pathA, pathB);
-
-      const _import = apiFile.imports.find(
-        (a) => a.moduleSpecifier === moduleSpecifier
-      );
-      if (_import) {
-        !_import.importClause.find((k) => k === m.type) &&
-          _import.importClause.push(m.type);
-      } else {
-        apiFile.imports.push({
-          importClause: [m.type],
-          moduleSpecifier,
-        });
-      }
-    }
-  }
-}
-
-export function genFileMapData(
+export function pbDataGenApiData(
   apiFileMap: { [fileName: string]: ApiFile },
   apiDir: string,
   output: string,
@@ -257,17 +216,27 @@ export function genFileMapData(
   apiPath: string,
   eslintDisable: boolean = true
 ): {
-  [fileName: string]: string;
+  [apiFilePath: string]: [code: string];
 } {
   const result = {};
 
   for (const fileName in apiFileMap) {
     const apiFile = apiFileMap[fileName];
-    apiFile.interfaces.forEach((k) => {
-      convertImport(k, fileName, apiFile);
-      if (k.module && k.module.interfaces.length > 0) {
-        k.module.interfaces.forEach((k) => convertImport(k, fileName, apiFile));
+
+    apiFile.imports.forEach((k) => {
+      if (k.resolvedPath) {
+        const pathA = k.resolvedPath.replace(".proto", "");
+        const pathB = fileName.slice(0, fileName.lastIndexOf("/"));
+        k.moduleSpecifier = getRelativePathABDepth(pathA, pathB);
       }
+    });
+
+    apiFile.interfaces.forEach((inter) => {
+      inter.members.forEach((mem) => {
+        if (mem.dependencyType === DependencyType.INLINE) {
+          mem.type = inter.name + "." + mem.type;
+        }
+      });
     });
 
     apiFile.path = fileName.replace(apiDir, output).replace(".proto", ".ts");

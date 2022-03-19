@@ -3,6 +3,7 @@ import { isPrototype } from "./utils";
 import {
   Interface,
   Enum,
+  Import,
   PropertySignature,
   ApiModule,
   InterfaceModule,
@@ -106,6 +107,31 @@ export function typeGenInterface(item: protoJs.Type): Interface {
   }
 
   return result;
+}
+
+export function interfaceGenImport(
+  _interface: Interface,
+  arr: Import[]
+): Import[] {
+  const insert = (k: PropertySignature) => {
+    if (k.dependencyType === DependencyType.EXTERNAL) {
+      const index = arr.findIndex((a) => k.resolvedPath === a.resolvedPath);
+      if (index > -1) {
+        !arr[index].importClause.includes(k.type) &&
+          arr[index].importClause.push(k.type);
+      } else {
+        arr.push({
+          importClause: [k.type],
+          resolvedPath: k.resolvedPath,
+        });
+      }
+    }
+  };
+  _interface.members.forEach((k) => insert(k));
+  _interface.module?.interfaces?.forEach((i) => {
+    i.members.forEach((k) => insert(k));
+  });
+  return arr;
 }
 
 export function enumGenEnum(item: protoJs.Enum): Enum {

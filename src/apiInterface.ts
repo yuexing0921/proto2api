@@ -1,6 +1,7 @@
 export interface Import {
   importClause: string[];
-  moduleSpecifier: string;
+  moduleSpecifier?: string;
+  resolvedPath?: string;
 }
 
 export interface EnumMember {

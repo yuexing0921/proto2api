@@ -13,8 +13,9 @@ import {
   typeGenInterfaceModule,
   enumGenEnum,
   serviceGenApiFunction,
+  interfaceGenImport,
 } from "./core";
-import { genFileMapData } from "./genTsApi";
+import { pbDataGenApiData } from "./genTsApi";
 
 export interface Options {
   files: string[]; // proto file
@@ -52,6 +53,10 @@ export function run(options: Options) {
       if (isService(item)) {
         apiFile.apiModules.push(serviceGenApiFunction(item as any));
       }
+      // Generate corresponding data for enum
+      if (isEnum(item)) {
+        apiFile.enums.push(enumGenEnum(item as any));
+      }
       //  Generate corresponding data for message
       if (isType(item)) {
         const _interface = typeGenInterface(item as any);
@@ -59,16 +64,16 @@ export function run(options: Options) {
           _interface.module = typeGenInterfaceModule(item as any);
         }
         apiFile.interfaces.push(_interface);
-      }
-      // Generate corresponding data for enum
-      if (isEnum(item)) {
-        apiFile.enums.push(enumGenEnum(item as any));
+
+        //  Generate corresponding data for imports
+        interfaceGenImport(_interface, apiFile.imports);
       }
     }
   };
   // outputFileSync("root.json", JSON.stringify(root.nested, null, 4));
   visitRoot(root);
-  const result = genFileMapData(
+
+  const result = pbDataGenApiData(
     apiFileMap,
     apiDir,
     options.output,
