@@ -17,10 +17,12 @@ describe("renderEnum test", () => {
       },
     ];
     const result = trim(renderEnum(list));
-    const expected = trim(`export enum Status {
-      START,
-      END
-    }`);
+    const expected = trim(`
+      export enum Status {
+        START,
+        END
+      }
+    `);
     expect(result).toBe(expected);
   });
 
@@ -41,10 +43,12 @@ describe("renderEnum test", () => {
       },
     ];
     const result = trim(renderEnum(list));
-    const expected = trim(`export enum Status {
-      START = 'start',
-      END = 'end'
-    }`);
+    const expected = trim(`
+      export enum Status {
+        START = 'start',
+        END = 'end'
+      }
+    `);
     expect(result).toBe(expected);
   });
 
@@ -67,12 +71,14 @@ describe("renderEnum test", () => {
       },
     ];
     const result = trim(renderEnum(list));
-    const expected = trim(`export enum Status {
-      // status start
-      START = 'start',
-      // status end
-      END = 'end'
-    }`);
+    const expected = trim(`
+      export enum Status {
+        // status start
+        START = 'start',
+        // status end
+        END = 'end'
+      }
+    `);
     expect(result).toBe(expected);
   });
 });

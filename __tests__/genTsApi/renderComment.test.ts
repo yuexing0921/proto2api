@@ -1,4 +1,5 @@
 import { renderImport } from "../../src/genTsApi";
+import { trim } from "../utils";
 
 describe("renderImport test", () => {
   test("Single line rendering", () => {
@@ -24,8 +25,11 @@ describe("renderImport test", () => {
         moduleSpecifier: "~/moduleB",
       },
     ];
-    const result = renderImport(imports);
-    const expected = `import { A,B,C } from '~/moduleA'\nimport { A,B,C } from '~/moduleB'`;
+    const result = trim(renderImport(imports));
+    const expected = trim(`
+      import { A,B,C } from '~/moduleA'
+      import { A,B,C } from '~/moduleB'
+    `);
     expect(result).toBe(expected);
   });
 });
