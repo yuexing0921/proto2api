@@ -3,11 +3,11 @@ import { isPrototype } from "./utils";
 import {
   Interface,
   Enum,
-  Import,
   PropertySignature,
   ApiModule,
   InterfaceModule,
   DependencyType,
+  Import,
 } from "./apiInterface";
 
 export function isEnum(obj) {
@@ -32,8 +32,12 @@ export function isService(obj) {
  * @param typeStr
  * @returns
  */
-function getGoogleCommon(typeStr: string) {
-  return typeStr === "google.protobuf.Empty" ? "{}" : typeStr;
+function getGoogleCommon(typeStr): string {
+  if (typeStr === "google.protobuf.Empty") {
+    return "{}";
+  }
+  if (typeStr === "google.protobuf.Any") return `any`;
+  return "";
 }
 
 export function typeGenInterfaceModule(child: protoJs.Type): InterfaceModule {
@@ -85,9 +89,13 @@ export function typeGenInterface(item: protoJs.Type): Interface {
     };
     // If the reference is to another type
     if (field.resolvedType) {
-      member.type =
-        getGoogleCommon(field.type) != "{}" ? field.resolvedType.name : "{}";
+      // member.type = field.resolvedType.name
+      // if (field.type.match(/google/)) {
+      //   debugger
+      // }
+      // member.type = field.type.match(/google/) ? field.resolvedType.name : '{}'
       // write reference path
+      member.type = getGoogleCommon(field.type) || field.resolvedType.name;
       member.resolvedPath =
         field.filename === field.resolvedType.filename
           ? ""
@@ -99,7 +107,7 @@ export function typeGenInterface(item: protoJs.Type): Interface {
         } else {
           member.dependencyType = DependencyType.CURRENT;
         }
-      } else {
+      } else if (field.resolvedType.filename) {
         member.dependencyType = DependencyType.EXTERNAL;
       }
     }
@@ -181,9 +189,9 @@ export function serviceGenApiFunction(item: protoJs.Service): ApiModule {
       return {
         name: k.name,
         comment: k.comment,
-        req: getGoogleCommon(k.requestType),
+        req: getGoogleCommon(k.requestType) || k.requestType,
         url: methodUrl.url,
-        res: getGoogleCommon(k.responseType),
+        res: getGoogleCommon(k.responseType) || k.responseType,
         method: methodUrl.method as any,
       };
     }),
