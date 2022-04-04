@@ -13,7 +13,10 @@ import {
 
 import { format, getRelativePathABDepth } from "./utils";
 
-function renderComment(comment: string, isNewline: boolean = true): string {
+export function renderComment(
+  comment: string,
+  isNewline: boolean = true
+): string {
   const str = comment
     ? comment
         .split("\n")
@@ -64,7 +67,7 @@ export function renderImport(list: Import[]) {
  */
 export function renderEnum(list: Enum[]) {
   const renderMembers = (member: EnumMember) => {
-    if (isNaN(member.initializer as number)) {
+    if (member.initializer && isNaN(member.initializer as number)) {
       return `${renderComment(member.comment)}${member.name} = '${
         member.initializer
       }'`;

@@ -32,3 +32,4 @@ node_modules
 api/
 
 yarn-error.log
+coverage
