@@ -5,6 +5,7 @@
   "bin": {
     "proto2api": "./bin/index"
   },
+  "packageManager": "pnpm@6.32.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/yuexing0921/proto2api"
