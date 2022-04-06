@@ -16,6 +16,11 @@ program
     "Directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto"
   )
   .requiredOption("-o, --output <type>", "Output api path")
+  .option(
+    "-t, --type <type>",
+    "The type of IDL file, currently supports proto and swagger, the default is proto type",
+    "proto"
+  )
   .option("--apiName <type>", "apiName", "webapi")
   .option("--apiPath <type>", "apiPath", "~/utils/api")
   .option(
@@ -52,6 +57,7 @@ program
     const options = {
       files,
       output: output.endsWith("/") ? output : output + "/",
+      type: opt.type,
       apiName: opt.apiName,
       apiPath: opt.apiPath,
       ignore,
