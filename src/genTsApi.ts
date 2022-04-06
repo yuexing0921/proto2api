@@ -197,7 +197,15 @@ export function renderApiModule(list: ApiModule[], apiName: string) {
   //   .join("\n\n");
 
   return list
-    .map((k) => `${renderFunction(k.functions, apiName)}`)
+    .map(
+      (k) =>
+        `
+        ${renderComment(
+          "--------------------service Bot start---------------------------- \n" +
+            k.comment
+        )}
+        ${renderFunction(k.functions, apiName)}`
+    )
     .join("\n\n");
 }
 
