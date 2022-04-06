@@ -17,15 +17,7 @@ import {
 } from "./core";
 import { pbDataGenApiData } from "./genTsApi";
 import { log, success } from "./utils";
-
-export interface Options {
-  files: string[]; // proto file
-  output: string;
-  protoDir?: string; // proto dir
-  apiName?: string;
-  apiPath?: string;
-  ignore?: RegExp; // ignore
-}
+import { Options } from "./index";
 
 export function run(options: Options) {
   log("Loading PB file ......");
@@ -43,6 +35,7 @@ export function run(options: Options) {
       enums: [],
       interfaces: [],
       apiModules: [],
+      apiPrefixPath: options.apiPrefixPath,
     };
   }
 
@@ -79,13 +72,14 @@ export function run(options: Options) {
   // outputFileSync("root.json", JSON.stringify(root.nested, null, 4));
   visitRoot(root);
   log("Convert PB data to api data");
-  const result = pbDataGenApiData(
+  const result = pbDataGenApiData({
     apiFileMap,
     apiDir,
-    options.output,
-    options.apiName,
-    options.apiPath
-  );
+    apiPrefixPath: options.apiPrefixPath,
+    output: options.output,
+    apiName: options.apiName,
+    apiPath: options.apiPath,
+  });
 
   for (const filePath in result) {
     outputFileSync(filePath, result[filePath], "utf8");

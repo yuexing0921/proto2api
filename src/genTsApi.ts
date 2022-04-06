@@ -168,12 +168,17 @@ const configStr = "config?";
  * @param list
  * @returns
  */
-export function renderFunction(list: ApiFunction[], apiName: string) {
+export function renderFunction(
+  list: ApiFunction[],
+  apiName: string,
+  apiPrefixPath: string
+): string {
   const renderReturn = (k: ApiFunction) => {
+    const url = apiPrefixPath ? apiPrefixPath + k.url : k.url;
     if (k.req) {
-      return ` return ${apiName}.${k.method}<${k.res}>('${k.url}', req, config)`;
+      return ` return ${apiName}.${k.method}<${k.res}>('${url}', req, config)`;
     } else {
-      return ` return ${apiName}.${k.method}<${k.res}>('${k.url}', {}, config)`;
+      return ` return ${apiName}.${k.method}<${k.res}>('${url}', {}, config)`;
     }
   };
 
@@ -187,7 +192,11 @@ export function renderFunction(list: ApiFunction[], apiName: string) {
     .join("\n\n");
 }
 
-export function renderApiModule(list: ApiModule[], apiName: string) {
+export function renderApiModule(
+  list: ApiModule[],
+  apiName: string,
+  apiPrefixPath: string
+): string {
   // return list
   //   .map(
   //     (k) => `${renderComment(k.comment)}export namespace ${k.name}{
@@ -198,38 +207,50 @@ export function renderApiModule(list: ApiModule[], apiName: string) {
 
   return list
     .map(
-      (k) =>
-        `
-        ${renderComment(
-          "--------------------service Bot start---------------------------- \n" +
-            k.comment
-        )}
-        ${renderFunction(k.functions, apiName)}`
+      (k) => `
+        ${renderComment(k.comment + "\n" + k.name)}
+        ${renderFunction(k.functions, apiName, apiPrefixPath)}
+      `
     )
     .join("\n\n");
 }
 
-export function genApiFileCode(apiInfo: ApiFile, apiName: string) {
+export function genApiFileCode(
+  apiInfo: ApiFile,
+  apiName: string,
+  apiPrefixPath: string
+): string {
   return `// This is code generated automatically by the proto2api, please do not modify
   ${renderComment(apiInfo.comment)}
   ${renderImport(apiInfo.imports)}
   ${renderEnum(apiInfo.enums)}
   ${renderInterface(apiInfo.interfaces)}
-  ${renderApiModule(apiInfo.apiModules, apiName)}
+  ${renderApiModule(apiInfo.apiModules, apiName, apiPrefixPath)}
   `;
 }
 
-export function pbDataGenApiData(
-  apiFileMap: { [fileName: string]: ApiFile },
-  apiDir: string,
-  output: string,
-  apiName: string,
-  apiPath: string,
-  eslintDisable: boolean = true
-): {
+export type GenApiDataOptions = {
+  apiFileMap: { [fileName: string]: ApiFile };
+  apiDir: string;
+  output: string;
+  apiName: string;
+  apiPath: string;
+  apiPrefixPath: string;
+  eslintDisable?: boolean;
+};
+export function pbDataGenApiData(options: GenApiDataOptions): {
   [apiFilePath: string]: [code: string];
 } {
   const result = {};
+  const {
+    apiFileMap,
+    apiDir,
+    output,
+    apiName,
+    apiPath,
+    apiPrefixPath,
+    eslintDisable = true,
+  } = options;
 
   for (const fileName in apiFileMap) {
     const apiFile = apiFileMap[fileName];
@@ -260,7 +281,7 @@ export function pbDataGenApiData(
       });
     }
 
-    const code = format(genApiFileCode(apiFile, apiName));
+    const code = format(genApiFileCode(apiFile, apiName, apiPrefixPath));
     // const code = genApiFileCode(apiFile, apiName);
     result[apiFile.path] = eslintDisable
       ? "/* eslint-disable */ \n" + code

@@ -98,6 +98,7 @@ export interface ApiFunction {
 
 export interface ApiFile {
   path: string; // generated path
+  apiPrefixPath: string;
   comment?: string; // comment in the header
   imports: Import[]; // referenced external dependencies
   enums: Enum[]; // all enums

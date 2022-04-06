@@ -23,6 +23,7 @@ program
   )
   .option("--apiName <type>", "apiName", "webapi")
   .option("--apiPath <type>", "apiPath", "~/utils/api")
+  .option("--prefix <type>", "api prefix path", "")
   .option(
     "--ignore [ignore...]",
     "Ignore unnecessary generated pb files",
@@ -60,6 +61,7 @@ program
       type: opt.type,
       apiName: opt.apiName,
       apiPath: opt.apiPath,
+      apiPrefixPath: opt.prefix,
       ignore,
     };
 
