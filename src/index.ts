@@ -1,7 +1,10 @@
-import { run } from "./parseProto";
-export * from "./parseProto";
+import { outputFileSync } from "fs-extra";
+import { getProto2ApiData } from "./proto";
+import { success } from "./utils";
+import { genCode } from "./genTsApi";
+export * from "./proto";
 export * from "./apiInterface";
-export * from "./core";
+export * from "./proto/core";
 export * from "./genTsApi";
 export * from "./utils";
 
@@ -16,5 +19,18 @@ export interface Options {
 }
 
 export function main(options: Options) {
-  run(options);
+  const apiFileMap = getProto2ApiData(options);
+
+  const result = genCode({
+    apiFileMap,
+    apiName: options.apiName,
+    apiPath: options.apiPath,
+    apiPrefixPath: options.apiPrefixPath,
+  });
+
+  for (const filePath in result) {
+    outputFileSync(filePath, result[filePath], "utf8");
+    success(`${filePath} generated successfully`);
+    console.log();
+  }
 }

@@ -8,10 +8,9 @@ import {
   InterfaceModule,
   ApiModule,
   ApiFunction,
-  DependencyType,
 } from "./apiInterface";
 
-import { format, getRelativePathABDepth } from "./utils";
+import { format } from "./utils";
 
 export function renderComment(
   comment: string,
@@ -229,23 +228,19 @@ export function genApiFileCode(
   `;
 }
 
-export type GenApiDataOptions = {
+export type GenCodeOptions = {
   apiFileMap: { [fileName: string]: ApiFile };
-  apiDir: string;
-  output: string;
   apiName: string;
   apiPath: string;
   apiPrefixPath: string;
   eslintDisable?: boolean;
 };
-export function pbDataGenApiData(options: GenApiDataOptions): {
+export function genCode(options: GenCodeOptions): {
   [apiFilePath: string]: [code: string];
 } {
   const result = {};
   const {
     apiFileMap,
-    apiDir,
-    output,
     apiName,
     apiPath,
     apiPrefixPath,
@@ -254,25 +249,6 @@ export function pbDataGenApiData(options: GenApiDataOptions): {
 
   for (const fileName in apiFileMap) {
     const apiFile = apiFileMap[fileName];
-
-    apiFile.imports.forEach((k) => {
-      if (k.resolvedPath) {
-        const pathA = k.resolvedPath.replace(".proto", "");
-        const pathB = fileName.slice(0, fileName.lastIndexOf("/"));
-        k.moduleSpecifier = getRelativePathABDepth(pathA, pathB);
-      }
-    });
-
-    apiFile.interfaces.forEach((inter) => {
-      inter.members.forEach((mem) => {
-        if (mem.dependencyType === DependencyType.INLINE) {
-          mem.type = inter.name + "." + mem.type;
-        }
-      });
-    });
-
-    apiFile.path = fileName.replace(apiDir, output).replace(".proto", ".ts");
-
     if (apiFile.apiModules.length > 0) {
       // If this is a proto with api calls, need to import the configured webapi
       apiFile.imports.unshift({

@@ -1,9 +1,9 @@
 import protoJs from "protobufjs";
-import { outputFileSync, existsSync } from "fs-extra";
+import { existsSync } from "fs-extra";
 
 import { resolve } from "path";
 
-import { ApiFile } from "./apiInterface";
+import { ApiFile, DependencyType } from "../apiInterface";
 
 import {
   isEnum,
@@ -15,11 +15,10 @@ import {
   serviceGenApiFunction,
   interfaceGenImport,
 } from "./core";
-import { pbDataGenApiData } from "./genTsApi";
-import { log, success } from "./utils";
-import { Options } from "./index";
+import { getRelativePathABDepth, log } from "../utils";
+import { Options } from "../index";
 
-export function run(options: Options) {
+export function getProto2ApiData(options: Options) {
   log("Loading PB file ......");
   const apiFileMap: { [fileName: string]: ApiFile } = {};
 
@@ -72,20 +71,50 @@ export function run(options: Options) {
   // outputFileSync("root.json", JSON.stringify(root.nested, null, 4));
   visitRoot(root);
   log("Convert PB data to api data");
-  const result = pbDataGenApiData({
+  return pathPreprocessing({
     apiFileMap,
     apiDir,
-    apiPrefixPath: options.apiPrefixPath,
     output: options.output,
-    apiName: options.apiName,
-    apiPath: options.apiPath,
   });
+}
 
-  for (const filePath in result) {
-    outputFileSync(filePath, result[filePath], "utf8");
-    success(`${filePath} generated successfully`);
-    console.log();
+export type PathPreprocessingOption = {
+  apiFileMap: { [fileName: string]: ApiFile };
+  apiDir: string;
+  output: string;
+};
+/**
+ * Do some preprocessing on the pb path
+ * @param options
+ * @returns
+ */
+export function pathPreprocessing(options: PathPreprocessingOption): {
+  [apiFilePath: string]: ApiFile;
+} {
+  const { apiFileMap, apiDir, output } = options;
+
+  for (const fileName in apiFileMap) {
+    const apiFile = apiFileMap[fileName];
+
+    apiFile.imports.forEach((k) => {
+      if (k.resolvedPath) {
+        const pathA = k.resolvedPath.replace(".proto", "");
+        const pathB = fileName.slice(0, fileName.lastIndexOf("/"));
+        k.moduleSpecifier = getRelativePathABDepth(pathA, pathB);
+      }
+    });
+
+    apiFile.interfaces.forEach((inter) => {
+      inter.members.forEach((mem) => {
+        if (mem.dependencyType === DependencyType.INLINE) {
+          mem.type = inter.name + "." + mem.type;
+        }
+      });
+    });
+
+    apiFile.path = fileName.replace(apiDir, output).replace(".proto", ".ts");
   }
+  return apiFileMap;
 }
 
 export function parseProto(protoFiles: string[]) {

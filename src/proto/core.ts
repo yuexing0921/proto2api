@@ -1,5 +1,5 @@
 import protoJs from "protobufjs";
-import { isPrototype } from "./utils";
+import { isPrototype } from "../utils";
 import {
   Interface,
   Enum,
@@ -8,7 +8,7 @@ import {
   InterfaceModule,
   DependencyType,
   Import,
-} from "./apiInterface";
+} from "../apiInterface";
 
 export function isEnum(obj) {
   return isPrototype(obj, protoJs.Enum);
