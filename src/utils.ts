@@ -73,11 +73,14 @@ export function format(code: string): string {
   return prettify(code, option);
 }
 
-export const toHump = function (str: string) {
+export const toHump = function (str: string, isBigHump = false): string {
   const a = str.split(/-|_/);
   let result = a[0];
   for (let i = 1; i < a.length; i++) {
     result = result + a[i].slice(0, 1).toUpperCase() + a[i].slice(1);
+  }
+  if (isBigHump) {
+    return result.replace(/^\S/, (sub) => sub.toUpperCase());
   }
   return result;
 };

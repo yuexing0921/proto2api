@@ -32,4 +32,10 @@ describe("toHump test", () => {
     const expected = "aaBcDd";
     expect(result).toBe(expected);
   });
+
+  test("aa-bc-dd big hump => AaBcDd", () => {
+    const result = toHump("aa-bc-dd", true);
+    const expected = "AaBcDd";
+    expect(result).toBe(expected);
+  });
 });
