@@ -1,4 +1,4 @@
-import { trim } from "../utils";
+import { trim } from "../_utils";
 import { renderEnum } from "../../src/genTsApi";
 
 describe("renderEnum test", () => {

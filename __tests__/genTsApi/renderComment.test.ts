@@ -1,5 +1,5 @@
 import { renderImport } from "../../src/genTsApi";
-import { trim } from "../utils";
+import { trim } from "../_utils";
 
 describe("renderImport test", () => {
   test("Single line rendering", () => {
