@@ -37,10 +37,15 @@ program
       return process.exit(1);
     }
     let files = [];
-    if (opt.dir.endsWith(".proto")) {
-      files.push(dirPath);
+    let swaggerData;
+    if (opt.type === "swagger") {
+      swaggerData = require(dirPath);
     } else {
-      files = await getPathsDir(dirPath + "/**/*.proto");
+      if (opt.dir.endsWith(".proto")) {
+        files.push(dirPath);
+      } else {
+        files = await getPathsDir(dirPath + "/**/*.proto");
+      }
     }
 
     const devMode = opt.debug;
@@ -62,6 +67,7 @@ program
       apiName: opt.apiName,
       apiPath: opt.apiPath,
       apiPrefixPath: opt.prefix,
+      swaggerData,
       ignore,
     };
 
