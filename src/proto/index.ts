@@ -31,7 +31,9 @@ export function getProto2ApiData(options: Options) {
       continue;
     }
     apiFileMap[p.path] = {
-      path: join(options.output, p.target).replace(".proto", ".ts"),
+      protoPath: p.path,
+      protoTargetPath: p.target,
+      outputPath: join(options.output, p.target).replace(".proto", ".ts"),
       comment: "",
       imports: [],
       enums: [],
@@ -67,17 +69,20 @@ export function getProto2ApiData(options: Options) {
         apiFile.interfaces.push(_interface);
 
         //  Generate corresponding data for imports
-        interfaceGenImport(_interface, apiFile.imports);
+        interfaceGenImport(_interface, apiFile.imports, apiFile.apiModules);
       }
     }
   };
   // outputFileSync("root.json", JSON.stringify(root.nested, null, 4));
   visitRoot(root);
   log("Convert PB data to api data");
-  return pathPreprocessing({
-    apiFileMap,
-    output: options.output,
-  });
+  return pathPreprocessing(
+    {
+      apiFileMap,
+      output: options.output,
+    },
+    pbPaths
+  );
 }
 
 export type PathPreprocessingOption = {
@@ -89,7 +94,13 @@ export type PathPreprocessingOption = {
  * @param options
  * @returns
  */
-export function pathPreprocessing(options: PathPreprocessingOption): {
+export function pathPreprocessing(
+  options: PathPreprocessingOption,
+  pbPaths: Array<{
+    target: string;
+    path: string;
+  }>
+): {
   [apiFilePath: string]: ApiFile;
 } {
   const { apiFileMap } = options;
@@ -99,8 +110,13 @@ export function pathPreprocessing(options: PathPreprocessingOption): {
 
     apiFile.imports.forEach((k) => {
       if (k.resolvedPath) {
-        const pathA = k.resolvedPath.replace(".proto", "");
-        const pathB = fileName.slice(0, fileName.lastIndexOf("/"));
+        const pathA = pbPaths
+          .find((p) => p.path === k.resolvedPath)
+          .target.replace(".proto", "");
+        const pathB = apiFile.protoTargetPath.slice(
+          0,
+          apiFile.protoTargetPath.lastIndexOf("/")
+        );
         k.moduleSpecifier = getRelativePathABDepth(pathA, pathB);
       }
     });

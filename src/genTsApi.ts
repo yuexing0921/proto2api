@@ -263,7 +263,7 @@ export function genCode(options: GenCodeOptions): {
 
     const code = format(genApiFileCode(apiFile, apiName, apiPrefixPath));
     // const code = genApiFileCode(apiFile, apiName);
-    result[apiFile.path] = eslintDisable
+    result[apiFile.outputPath] = eslintDisable
       ? "/* eslint-disable */ \n" + code
       : code;
   }

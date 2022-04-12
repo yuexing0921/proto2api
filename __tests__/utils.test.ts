@@ -1,4 +1,21 @@
-import { toHump, recursionDirFindPath } from "../src/utils";
+import {
+  toHump,
+  recursionDirFindPath,
+  getRelativePathABDepth,
+} from "../src/utils";
+
+describe("getRelativePathABDepth tests", () => {
+  test("one layer cycle", () => {
+    const result = getRelativePathABDepth("/a/b/c", "/b");
+    const expected = "../a/b/c";
+    expect(result).toBe(expected);
+  });
+  test("two layer cycle", () => {
+    const result = getRelativePathABDepth("/a/b/c", "/b/c");
+    const expected = "../../a/b/c";
+    expect(result).toBe(expected);
+  });
+});
 
 describe("toHump test", () => {
   test("aabc => aabc", () => {

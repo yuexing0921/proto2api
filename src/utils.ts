@@ -54,7 +54,7 @@ export function getRelativePathABDepth(pathA, pathB, depth = 0) {
   } else {
     return getRelativePathABDepth(
       pathA,
-      pathB.slice(0, pathB.lastIndexOf("/")),
+      pathB.match(/\//) ? pathB.slice(0, pathB.lastIndexOf("/")) : "",
       depth + 1
     );
   }

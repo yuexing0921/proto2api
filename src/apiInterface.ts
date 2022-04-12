@@ -46,6 +46,7 @@ export enum DependencyType {
   // }
   SYSTEM = "system",
 }
+
 export interface PropertySignature {
   name: string;
   type: string;
@@ -91,13 +92,17 @@ export interface ApiFunction {
   name: string;
   comment?: string;
   req?: string;
+  reqResolvedPath: string;
   url: string;
   res: string;
+  resResolvedPath: string;
   method: "get" | "post" | "put" | "patch" | "delete";
 }
 
 export interface ApiFile {
-  path: string; // generated path
+  protoPath: string; // proto file path
+  protoTargetPath: string; // proto target file path
+  outputPath: string; // generated path
   apiPrefixPath: string;
   comment?: string; // comment in the header
   imports: Import[]; // referenced external dependencies
