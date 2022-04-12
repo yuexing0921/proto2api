@@ -153,20 +153,20 @@ export function parseProto(protoFiles: string[], dependencyPath: string) {
       target,
     };
 
-    try {
-      if (target.match(/^google/)) {
-        pathObj = recursionDirFindPath(process.cwd() + "/common", target);
-      } else {
-        pathObj = recursionDirFindPath(apiDir, target);
-      }
-      if (!pathObj.path && dependencyPath) {
-        pathObj = recursionDirFindPath(dependencyPath, target);
-      }
-    } catch (e) {
-      if (!notFoundList.find((k) => k === target)) {
-        notFoundList.push(target);
-      }
+    if (target.match(/^google/)) {
+      pathObj = recursionDirFindPath(process.cwd() + "/common", target);
+    } else {
+      pathObj = recursionDirFindPath(apiDir, target);
     }
+
+    if (!pathObj.path && dependencyPath) {
+      pathObj = recursionDirFindPath(dependencyPath, target);
+    }
+
+    if (!pathObj.path && !notFoundList.find((k) => k === target)) {
+      notFoundList.push(target);
+    }
+
     pbPaths.push(pathObj);
     return pathObj.path;
   };
