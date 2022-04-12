@@ -1,5 +1,7 @@
 import chalk from "chalk";
 import * as fse from "fs-extra";
+import { existsSync } from "fs-extra";
+import { join } from "path";
 import { format as prettify } from "prettier";
 
 export const error = (msg) => {
@@ -72,6 +74,22 @@ export function format(code: string): string {
 
   return prettify(code, option);
 }
+
+export const recursionDirFindPath = (
+  rootDir: string,
+  target: string
+): string => {
+  if (!rootDir) {
+    throw new Error(target + " the path does not exist");
+  }
+  const path = join(rootDir, target);
+  if (existsSync(path)) {
+    return path;
+  }
+  const arr = rootDir.split("/");
+  arr.pop();
+  return recursionDirFindPath(arr.join("/"), target);
+};
 
 export const toHump = function (str: string, isBigHump = false): string {
   const a = str.split(/-|_/);

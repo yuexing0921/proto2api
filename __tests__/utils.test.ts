@@ -1,4 +1,4 @@
-import { toHump } from "../src/utils";
+import { toHump, recursionDirFindPath } from "../src/utils";
 
 describe("toHump test", () => {
   test("aabc => aabc", () => {
@@ -37,5 +37,19 @@ describe("toHump test", () => {
     const result = toHump("aa-bc-dd", true);
     const expected = "AaBcDd";
     expect(result).toBe(expected);
+  });
+});
+
+describe("recursionDirFindPath tests", () => {
+  test("path does not exist", () => {
+    expect(() => {
+      recursionDirFindPath("aa-bc-dd", "/path");
+    }).toThrowError(/the path does not exist/);
+  });
+
+  test("when the path exists", () => {
+    const result = recursionDirFindPath(__dirname, "/genTsApi/");
+    const expected = "__tests__/genTsApi/";
+    expect(result).toEqual(expect.stringMatching(expected));
   });
 });

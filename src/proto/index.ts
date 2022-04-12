@@ -1,8 +1,6 @@
 import protoJs from "protobufjs";
 import { existsSync } from "fs-extra";
 
-import { resolve } from "path";
-
 import { ApiFile, DependencyType } from "../apiInterface";
 
 import {
@@ -15,7 +13,12 @@ import {
   serviceGenApiFunction,
   interfaceGenImport,
 } from "./core";
-import { getRelativePathABDepth, log } from "../utils";
+import {
+  error,
+  getRelativePathABDepth,
+  log,
+  recursionDirFindPath,
+} from "../utils";
 import { Options } from "../index";
 
 export function getProto2ApiData(options: Options) {
@@ -121,7 +124,7 @@ export function parseProto(protoFiles: string[]) {
   const root = new protoJs.Root();
   let apiDir = "";
   const pbFilesPath = [];
-
+  const notFoundList = [];
   // Parse the imported PB to get the absolute path
   root.resolvePath = (origin, target) => {
     if (root.nested && root.files.length > 0 && !apiDir) {
@@ -131,26 +134,47 @@ export function parseProto(protoFiles: string[]) {
     }
 
     let file;
-
-    if (existsSync(target)) {
+    try {
+      if (existsSync(target)) {
+        file = target;
+      } else {
+        if (target.match(/^google/)) {
+          file = recursionDirFindPath(process.cwd() + "/common", target);
+        } else {
+          file = recursionDirFindPath(apiDir, target);
+        }
+      }
+      pbFilesPath.push(file);
+    } catch (e) {
+      if (!notFoundList.find((k) => k === target)) {
+        notFoundList.push(target);
+      }
       file = target;
-    } else {
-      file = resolve(apiDir, target);
     }
-    pbFilesPath.push(file);
+
     return file;
   };
 
-  root
-    .loadSync(protoFiles, {
-      keepCase: true,
-      alternateCommentMode: true,
-    })
-    .resolveAll();
+  try {
+    root
+      .loadSync(protoFiles, {
+        keepCase: true,
+        alternateCommentMode: true,
+      })
+      .resolveAll();
+  } catch (e) {
+    console.error(e);
+    if (notFoundList.length > 0) {
+      error("The following proto could not be found");
+      console.log(notFoundList);
+      console.log();
+    }
+  }
 
   return {
     root,
     apiDir,
     pbFilesPath,
+    notFoundList,
   };
 }
