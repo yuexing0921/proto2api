@@ -15,6 +15,7 @@ export interface Options {
   apiName: string;
   apiPath: string;
   apiPrefixPath: string;
+  depPath: string;
   ignore?: RegExp; // ignore
 }
 

@@ -10,23 +10,24 @@ const program = new Command();
 
 program
   .version(pkg.version)
-  .option("--debug", "Load code with ts-node for debug")
+  .option("--debug", "load code with ts-node for debug")
   .requiredOption(
     "-d, --dir <type>",
-    "Directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto"
+    "directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto"
   )
   .requiredOption("-o, --output <type>", "Output api path")
-  .option(
-    "-t, --type <type>",
-    "The type of IDL file, currently supports proto and swagger, the default is proto type",
-    "proto"
-  )
+
   .option("--apiName <type>", "apiName", "webapi")
   .option("--apiPath <type>", "apiPath", "~/utils/api")
   .option("--prefix <type>", "api prefix path", "")
   .option(
+    "--depPath <type>",
+    "the address of the external dependency proto library. eq: /common/proto3",
+    ""
+  )
+  .option(
     "--ignore [ignore...]",
-    "Ignore unnecessary generated pb files",
+    "ignore unnecessary generated pb files",
     "google|swagger"
   )
   .description(pkg.description)
@@ -58,10 +59,10 @@ program
     const options = {
       files,
       output: output.endsWith("/") ? output : output + "/",
-      type: opt.type,
       apiName: opt.apiName,
       apiPath: opt.apiPath,
       apiPrefixPath: opt.prefix,
+      depPath: opt.depPath,
       ignore,
     };
 

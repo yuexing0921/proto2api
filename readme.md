@@ -21,12 +21,15 @@ Convert proto file to api file
 
 Options:
   -V, --version         output the version number
-  --debug               Load code with ts-node for debug
-  -d, --dir <type>      Directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto
-  -o, --output <type>   Output api path
+  --debug               load code with ts-node for debug
+  -d, --dir <type>      directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto
+  -o, --output <type>   output api path
   --apiName <type>      apiName (default: "webapi")
   --apiPath <type>      apiPath (default: "~/utils/api")
-  --ignore [ignore...]  Ignore unnecessary generated pb files (default: "google|swagger")
+  --prefix <type>       api prefix path (default: "")
+  --depPath <type>      the address of the external dependency proto library. eq: /common/proto3 (default:"")
+  --ignore [ignore...]  ignore unnecessary generated pb files (default: "google|swagger")
+  -h, --help            display help for command
 ```
 ## 参考文档
 Google Protobuf 语法指南 https://developers.google.com/protocol-buffers/docs/proto3

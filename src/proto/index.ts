@@ -1,5 +1,5 @@
 import protoJs from "protobufjs";
-import { existsSync } from "fs-extra";
+import { join } from "path";
 
 import { ApiFile, DependencyType } from "../apiInterface";
 
@@ -25,13 +25,13 @@ export function getProto2ApiData(options: Options) {
   log("Loading PB file ......");
   const apiFileMap: { [fileName: string]: ApiFile } = {};
 
-  const { apiDir, root, pbFilesPath } = parseProto(options.files);
-  for (const filePath of pbFilesPath) {
-    if (options?.ignore?.test(filePath)) {
+  const { root, pbPaths } = parseProto(options.files, options.depPath);
+  for (const p of pbPaths) {
+    if (options?.ignore?.test(p.target)) {
       continue;
     }
-    apiFileMap[filePath] = {
-      path: "",
+    apiFileMap[p.path] = {
+      path: join(options.output, p.target).replace(".proto", ".ts"),
       comment: "",
       imports: [],
       enums: [],
@@ -76,14 +76,12 @@ export function getProto2ApiData(options: Options) {
   log("Convert PB data to api data");
   return pathPreprocessing({
     apiFileMap,
-    apiDir,
     output: options.output,
   });
 }
 
 export type PathPreprocessingOption = {
   apiFileMap: { [fileName: string]: ApiFile };
-  apiDir: string;
   output: string;
 };
 /**
@@ -94,7 +92,7 @@ export type PathPreprocessingOption = {
 export function pathPreprocessing(options: PathPreprocessingOption): {
   [apiFilePath: string]: ApiFile;
 } {
-  const { apiFileMap, apiDir, output } = options;
+  const { apiFileMap } = options;
 
   for (const fileName in apiFileMap) {
     const apiFile = apiFileMap[fileName];
@@ -114,16 +112,17 @@ export function pathPreprocessing(options: PathPreprocessingOption): {
         }
       });
     });
-
-    apiFile.path = fileName.replace(apiDir, output).replace(".proto", ".ts");
   }
   return apiFileMap;
 }
 
-export function parseProto(protoFiles: string[]) {
+export function parseProto(protoFiles: string[], dependencyPath: string) {
   const root = new protoJs.Root();
   let apiDir = "";
-  const pbFilesPath = [];
+  const pbPaths: Array<{
+    target: string;
+    path: string;
+  }> = [];
   const notFoundList = [];
   // Parse the imported PB to get the absolute path
   root.resolvePath = (origin, target) => {
@@ -133,26 +132,27 @@ export function parseProto(protoFiles: string[]) {
       apiDir = firstPath.slice(0, firstPath.indexOf(keys[0]));
     }
 
-    let file;
+    let pathObj = {
+      path: target,
+      target,
+    };
+
     try {
-      if (existsSync(target)) {
-        file = target;
+      if (target.match(/^google/)) {
+        pathObj = recursionDirFindPath(process.cwd() + "/common", target);
       } else {
-        if (target.match(/^google/)) {
-          file = recursionDirFindPath(process.cwd() + "/common", target);
-        } else {
-          file = recursionDirFindPath(apiDir, target);
-        }
+        pathObj = recursionDirFindPath(apiDir, target);
       }
-      pbFilesPath.push(file);
+      if (!pathObj.path && dependencyPath) {
+        pathObj = recursionDirFindPath(dependencyPath, target);
+      }
     } catch (e) {
       if (!notFoundList.find((k) => k === target)) {
         notFoundList.push(target);
       }
-      file = target;
     }
-
-    return file;
+    pbPaths.push(pathObj);
+    return pathObj.path;
   };
 
   try {
@@ -170,11 +170,12 @@ export function parseProto(protoFiles: string[]) {
       console.log();
     }
   }
-
+  // remove absolute path
+  pbPaths.forEach((obj) => {
+    obj.target = obj.target.replace(apiDir, "");
+  });
   return {
     root,
-    apiDir,
-    pbFilesPath,
-    notFoundList,
+    pbPaths,
   };
 }

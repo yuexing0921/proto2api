@@ -78,17 +78,26 @@ export function format(code: string): string {
 export const recursionDirFindPath = (
   rootDir: string,
   target: string
-): string => {
-  if (!rootDir) {
-    throw new Error(target + " the path does not exist");
+): {
+  path: string;
+  target: string;
+} => {
+  if (!target) {
+    return {
+      path: "",
+      target,
+    };
   }
   const path = join(rootDir, target);
   if (existsSync(path)) {
-    return path;
+    return {
+      path,
+      target: target.match(/^\//) ? target : "/" + target,
+    };
   }
-  const arr = rootDir.split("/");
-  arr.pop();
-  return recursionDirFindPath(arr.join("/"), target);
+  const arr = target.split("/");
+  arr.shift();
+  return recursionDirFindPath(rootDir, arr.join("/"));
 };
 
 export const toHump = function (str: string, isBigHump = false): string {

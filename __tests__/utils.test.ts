@@ -42,14 +42,29 @@ describe("toHump test", () => {
 
 describe("recursionDirFindPath tests", () => {
   test("path does not exist", () => {
-    expect(() => {
-      recursionDirFindPath("aa-bc-dd", "/path");
-    }).toThrowError(/the path does not exist/);
+    const result = recursionDirFindPath("aa-bc-dd", "/path");
+    const expected = {
+      path: "",
+      target: "",
+    };
+    expect(result).toEqual(expected);
   });
 
   test("when the path exists", () => {
-    const result = recursionDirFindPath(__dirname, "/genTsApi/");
-    const expected = "__tests__/genTsApi/";
-    expect(result).toEqual(expect.stringMatching(expected));
+    const result = recursionDirFindPath(process.cwd(), "/__tests__");
+    const expected = {
+      target: "/__tests__",
+      path: expect.stringMatching(/__tests__/),
+    };
+    expect(result).toMatchObject(expected);
+  });
+
+  test("relative path", () => {
+    const result = recursionDirFindPath(__dirname, "/__tests__/utils.test.ts");
+    const expected = {
+      target: "/utils.test.ts",
+      path: expect.stringMatching(/__tests__/),
+    };
+    expect(result).toMatchObject(expected);
   });
 });
