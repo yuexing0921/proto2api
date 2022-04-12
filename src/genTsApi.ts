@@ -95,11 +95,8 @@ export function renderInterfaceModule(list: InterfaceModule[]) {
     .join("\n");
 }
 
-function getType(k: PropertySignature) {
-  if (k.map) {
-    return `Map<${k.keyType},${k.type}>`;
-  }
-  switch (k.type) {
+function getProtoType(type: string): string {
+  switch (type) {
     case "bool":
       return "boolean";
     case "int32":
@@ -114,8 +111,15 @@ function getType(k: PropertySignature) {
     case "bytes":
       return "string";
     default:
-      return k.type;
+      return type;
   }
+}
+
+function getType(k: PropertySignature) {
+  if (k.map) {
+    return `Map<${getProtoType(k.keyType)},${k.type}>`;
+  }
+  return getProtoType(k.type);
 }
 
 export const renderPropertySignature = (ps: PropertySignature[]) => {
