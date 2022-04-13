@@ -117,7 +117,8 @@ function getProtoType(type: string): string {
 
 function getType(k: PropertySignature) {
   if (k.map) {
-    return `Map<${getProtoType(k.keyType)},${k.type}>`;
+    // return `Map<${getProtoType(k.keyType)},${k.type}>`;
+    return `{ [key: ${getProtoType(k.keyType)}]: ${k.type} }`;
   }
   return getProtoType(k.type);
 }
@@ -177,7 +178,8 @@ export function renderFunction(
   apiPrefixPath: string
 ): string {
   const renderReturn = (k: ApiFunction) => {
-    const url = apiPrefixPath ? apiPrefixPath + k.url : k.url;
+    const _url = k.redirectUrl ? k.redirectUrl : k.url;
+    const url = apiPrefixPath ? apiPrefixPath + _url : _url;
     if (k.req) {
       return ` return ${apiName}.${k.method}<${k.res}>('${url}', req, config)`;
     } else {
