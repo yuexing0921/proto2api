@@ -27,11 +27,13 @@ message InfoReq {
     }
     InlineItem item = 4;
 
+    map<string,InlineItem> map = 5;
+
     // Depends on the message of the current file
-    Status status = 5;
+    Status status = 6;
 
     // Externally dependent messages
-    google.protobuf.Method method = 6;
+    google.protobuf.Method method = 7;
     
 }
 message InfoResp {
@@ -48,6 +50,15 @@ service API {
           };
     }
     rpc PostDemo(InfoReq) returns (InfoResp) {
+        option (google.api.http) = {
+            post: "/post"
+        };
+    }
+
+    // asdfasdf
+    // @redirect  /v1/post
+    // asdfasdf
+    rpc RedirectDemo(InfoReq) returns (InfoResp) {
         option (google.api.http) = {
             post: "/post"
         };

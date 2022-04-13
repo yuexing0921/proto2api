@@ -94,6 +94,7 @@ export interface ApiFunction {
   req?: string;
   reqResolvedPath: string;
   url: string;
+  redirectUrl?: string;
   res: string;
   resResolvedPath: string;
   method: "get" | "post" | "put" | "patch" | "delete";

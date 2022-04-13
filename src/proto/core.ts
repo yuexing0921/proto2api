@@ -211,15 +211,26 @@ export function serviceGenApiFunction(item: protoJs.Service): ApiModule {
       // }
       const resFn = k.resolvedRequestType.filename;
       const repFn = k.resolvedResponseType.filename;
+      let comment = k.comment || "";
+      const redirectReg = comment.match(/\@redirect\s*(\S+)/);
+      let redirectUrl = "";
+      if (redirectReg && redirectReg.length) {
+        redirectUrl = redirectReg[1];
+        comment = comment.replace(
+          /\@redirect\s*(\S+)/,
+          "@originUrl: " + httpType.url
+        );
+      }
       return {
         name: k.name,
-        comment: k.comment,
+        comment,
         req:
           getGoogleCommon(k.requestType) || k.resolvedRequestType
             ? k.resolvedRequestType.name
             : k.requestType,
         reqResolvedPath: resFn === k.filename ? "" : resFn,
         url: httpType.url,
+        redirectUrl,
         res:
           getGoogleCommon(k.responseType) || k.resolvedResponseType
             ? k.resolvedResponseType.name
