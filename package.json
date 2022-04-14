@@ -1,6 +1,6 @@
 {
   "name": "proto2api",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Convert proto file to api file",
   "bin": {
     "proto2api": "./bin/index"
