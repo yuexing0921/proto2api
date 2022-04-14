@@ -55,6 +55,22 @@ describe("toHump test", () => {
     const expected = "AaBcDd";
     expect(result).toBe(expected);
   });
+  test("aa.bc => aaBc", () => {
+    const result = toHump("aa.bc");
+    const expected = "aaBc";
+    expect(result).toBe(expected);
+  });
+  test("aa.bc.dd => aaBcDd", () => {
+    const result = toHump("aa.bc.dd");
+    const expected = "aaBcDd";
+    expect(result).toBe(expected);
+  });
+
+  test("aa.bc.dd big hump => AaBcDd", () => {
+    const result = toHump("aa.bc.dd", true);
+    const expected = "AaBcDd";
+    expect(result).toBe(expected);
+  });
 });
 
 describe("recursionDirFindPath tests", () => {

@@ -11,7 +11,7 @@ import {
   typeGenInterfaceModule,
   enumGenEnum,
   serviceGenApiFunction,
-  interfaceGenImport,
+  insertImport,
 } from "./core";
 import {
   error,
@@ -55,6 +55,16 @@ export function getProto2ApiData(options: Options) {
       // Generate corresponding data for service
       if (isService(item)) {
         apiFile.apiModules.push(serviceGenApiFunction(item as any));
+        apiFile.apiModules.forEach((k) =>
+          k.functions.forEach((f) => {
+            if (f.req.dependencyType === DependencyType.EXTERNAL) {
+              insertImport(apiFile.imports, f.req);
+            }
+            if (f.res.dependencyType === DependencyType.EXTERNAL) {
+              insertImport(apiFile.imports, f.res);
+            }
+          })
+        );
       }
       // Generate corresponding data for enum
       if (isEnum(item)) {
@@ -67,9 +77,19 @@ export function getProto2ApiData(options: Options) {
           _interface.module = typeGenInterfaceModule(item as any);
         }
         apiFile.interfaces.push(_interface);
-
         //  Generate corresponding data for imports
-        interfaceGenImport(_interface, apiFile.imports, apiFile.apiModules);
+        _interface.members.forEach((k) => {
+          if (k.propertyType.dependencyType === DependencyType.EXTERNAL) {
+            insertImport(apiFile.imports, k.propertyType);
+          }
+        });
+        _interface.module?.interfaces?.forEach((i) => {
+          i.members.forEach((k) => {
+            if (k.propertyType.dependencyType === DependencyType.EXTERNAL) {
+              insertImport(apiFile.imports, k.propertyType);
+            }
+          });
+        });
       }
     }
   };
@@ -123,8 +143,8 @@ export function pathPreprocessing(
 
     apiFile.interfaces.forEach((inter) => {
       inter.members.forEach((mem) => {
-        if (mem.dependencyType === DependencyType.INLINE) {
-          mem.type = inter.name + "." + mem.type;
+        if (mem.propertyType.dependencyType === DependencyType.INLINE) {
+          mem.propertyType.type = inter.name + "." + mem.propertyType.type;
         }
       });
     });

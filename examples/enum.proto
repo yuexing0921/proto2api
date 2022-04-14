@@ -1,0 +1,14 @@
+
+syntax = "proto3";
+package hello;
+
+enum Status {
+    UNKNOWN = 0;
+    NEW = 1;
+}
+ 
+message InfoResp {
+    int32 ret_code = 1 [json_name = "retCode"];
+    string ret_msg = 2  [json_name = "retMsg"];
+    Status status = 3;
+}

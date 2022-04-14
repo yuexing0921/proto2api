@@ -8,9 +8,11 @@ import {
   InterfaceModule,
   ApiModule,
   ApiFunction,
+  DependencyType,
+  PropertyType,
 } from "./apiInterface";
 
-import { format } from "./utils";
+import { format, toHump } from "./utils";
 
 export function renderComment(
   comment: string,
@@ -26,6 +28,21 @@ export function renderComment(
   else return str;
 }
 
+function renderTypeName(
+  info: { type: string; aliasName: string },
+  messageMap: { [key: string]: 1 },
+  isImport: boolean = false
+) {
+  let name = info.type;
+  if (messageMap[info.type]) {
+    if (isImport) {
+      name = name + " as " + toHump(info.aliasName, true);
+    } else {
+      name = toHump(info.aliasName, true);
+    }
+  }
+  return name;
+}
 /**
  * list  = [{
  *  importClause: ['A', 'B', 'C'],
@@ -36,12 +53,19 @@ export function renderComment(
  * @param list
  * @returns
  */
-export function renderImport(list: Import[]) {
+export function renderImport(list: Import[], messageMap: { [key: string]: 1 }) {
   return list
-    .map(
-      (k) =>
-        `import { ${k.importClause.join(",")} } from '${k.moduleSpecifier}'`
-    )
+    .map((k) => {
+      return `import { ${k.importClause
+        .map((i) =>
+          renderTypeName(
+            { type: i.type, aliasName: i.dependencyTypeName },
+            messageMap,
+            true
+          )
+        )
+        .join(",")} } from '${k.moduleSpecifier}'`;
+    })
     .join("\n");
 }
 
@@ -83,13 +107,16 @@ export function renderEnum(list: Enum[]) {
     )
     .join("\n");
 }
-export function renderInterfaceModule(list: InterfaceModule[]) {
+export function renderInterfaceModule(
+  list: InterfaceModule[],
+  messageMap: { [key: string]: 1 }
+) {
   return list
     .map(
       (k) => `${renderComment(k.comment)}export namespace ${k.name}{
         ${renderEnum(k.enums)}
 
-        ${renderInterface(k.interfaces)}
+        ${renderInterface(k.interfaces, messageMap)}
       }`
     )
     .join("\n");
@@ -115,19 +142,32 @@ function getProtoType(type: string): string {
   }
 }
 
-function getType(k: PropertySignature) {
+function getType(k: PropertyType, messageMap: { [key: string]: 1 }) {
+  let type = getProtoType(k.type);
+  if (k.dependencyType === DependencyType.EXTERNAL) {
+    type = renderTypeName(
+      {
+        type: k.type,
+        aliasName: k.dependencyTypeName,
+      },
+      messageMap
+    );
+  }
   if (k.map) {
     // return `Map<${getProtoType(k.keyType)},${k.type}>`;
-    return `{ [key: ${getProtoType(k.keyType)}]: ${k.type} }`;
+    return `{ [key: ${getProtoType(k.keyType)}]: ${type} }`;
   }
-  return getProtoType(k.type);
+  return type;
 }
 
-export const renderPropertySignature = (ps: PropertySignature[]) => {
+export const renderPropertySignature = (
+  ps: PropertySignature[],
+  messageMap: { [key: string]: 1 }
+) => {
   return ps
     .map((k) => {
       const name = k.jsonName ? k.jsonName : k.name;
-      const type = getType(k);
+      const type = getType(k.propertyType, messageMap);
       let optional = k.optional;
       if (k?.comment?.match(/optional/)) {
         optional = true;
@@ -139,15 +179,18 @@ export const renderPropertySignature = (ps: PropertySignature[]) => {
     .join("\n");
 };
 
-export function renderInterface(list: Interface[]) {
+export function renderInterface(
+  list: Interface[],
+  messageMap: { [key: string]: 1 }
+) {
   return list
     .map((k) => {
       let str = "";
       if (k.module) {
-        str = renderInterfaceModule([k.module]);
+        str = renderInterfaceModule([k.module], messageMap);
       }
       str += `${renderComment(k.comment)}export interface ${k.name}{
-          ${renderPropertySignature(k.members)}
+          ${renderPropertySignature(k.members, messageMap)}
       }`;
       return str;
     })
@@ -175,21 +218,30 @@ const configStr = "config?";
 export function renderFunction(
   list: ApiFunction[],
   apiName: string,
-  apiPrefixPath: string
+  apiPrefixPath: string,
+  messageMap: { [key: string]: 1 }
 ): string {
   const renderReturn = (k: ApiFunction) => {
     const _url = k.redirectUrl ? k.redirectUrl : k.url;
     const url = apiPrefixPath ? apiPrefixPath + _url : _url;
-    if (k.req) {
-      return ` return ${apiName}.${k.method}<${k.res}>('${url}', req, config)`;
+    if (k.req.type) {
+      return ` return ${apiName}.${k.method}<${getType(
+        k.res,
+        messageMap
+      )}>('${url}', req, config)`;
     } else {
-      return ` return ${apiName}.${k.method}<${k.res}>('${url}', {}, config)`;
+      return ` return ${apiName}.${k.method}<${getType(
+        k.res,
+        messageMap
+      )}>('${url}', {}, config)`;
     }
   };
 
   return list
     .map((k) => {
-      const reqStr = k.req ? `req: Partial<${k.req}>, ${configStr}` : configStr;
+      const reqStr = k.req.type
+        ? `req: Partial<${getType(k.req, messageMap)}>, ${configStr}`
+        : configStr;
       return `${renderComment(k.comment)}export function ${k.name}(${reqStr}){
             ${renderReturn(k)}
         }`;
@@ -200,7 +252,8 @@ export function renderFunction(
 export function renderApiModule(
   list: ApiModule[],
   apiName: string,
-  apiPrefixPath: string
+  apiPrefixPath: string,
+  messageMap: { [key: string]: 1 }
 ): string {
   // return list
   //   .map(
@@ -214,7 +267,7 @@ export function renderApiModule(
     .map(
       (k) => `
         ${renderComment(k.comment + "\n" + k.name)}
-        ${renderFunction(k.functions, apiName, apiPrefixPath)}
+        ${renderFunction(k.functions, apiName, apiPrefixPath, messageMap)}
       `
     )
     .join("\n\n");
@@ -223,14 +276,15 @@ export function renderApiModule(
 export function genApiFileCode(
   apiInfo: ApiFile,
   apiName: string,
-  apiPrefixPath: string
+  apiPrefixPath: string,
+  messageMap: { [key: string]: 1 }
 ): string {
   return `// This is code generated automatically by the proto2api, please do not modify
   ${renderComment(apiInfo.comment)}
-  ${renderImport(apiInfo.imports)}
+  ${renderImport(apiInfo.imports, messageMap)}
   ${renderEnum(apiInfo.enums)}
-  ${renderInterface(apiInfo.interfaces)}
-  ${renderApiModule(apiInfo.apiModules, apiName, apiPrefixPath)}
+  ${renderInterface(apiInfo.interfaces, messageMap)}
+  ${renderApiModule(apiInfo.apiModules, apiName, apiPrefixPath, messageMap)}
   `;
 }
 
@@ -258,12 +312,34 @@ export function genCode(options: GenCodeOptions): {
     if (apiFile.apiModules.length > 0) {
       // If this is a proto with api calls, need to import the configured webapi
       apiFile.imports.unshift({
-        importClause: [apiName],
+        importClause: [
+          {
+            type: apiName,
+          },
+        ],
         moduleSpecifier: apiPath,
       });
     }
 
-    const code = format(genApiFileCode(apiFile, apiName, apiPrefixPath));
+    const messageMap = {};
+    apiFile.interfaces.forEach((k) => {
+      messageMap[k.name] = 1;
+      k.module &&
+        k.module.interfaces.forEach((i) => {
+          messageMap[k.name + "." + i.name] = 1;
+        });
+      k.module &&
+        k.module.enums.forEach((i) => {
+          messageMap[k.name + "." + i.name] = 1;
+        });
+    });
+    apiFile.enums.forEach((k) => {
+      messageMap[k.name] = 1;
+    });
+
+    const code = format(
+      genApiFileCode(apiFile, apiName, apiPrefixPath, messageMap)
+    );
     // const code = genApiFileCode(apiFile, apiName);
     result[apiFile.outputPath] = eslintDisable
       ? "/* eslint-disable */ \n" + code

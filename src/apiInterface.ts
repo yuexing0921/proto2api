@@ -1,5 +1,8 @@
 export interface Import {
-  importClause: string[];
+  importClause: Array<{
+    type: string;
+    dependencyTypeName?: string;
+  }>;
   moduleSpecifier?: string;
   resolvedPath?: string;
 }
@@ -47,15 +50,24 @@ export enum DependencyType {
   SYSTEM = "system",
 }
 
-export interface PropertySignature {
-  name: string;
+export interface PropertyType {
   type: string;
-  dependencyType: DependencyType; // default 'system'
-  comment?: string;
+  dependencyType?: DependencyType; // default 'system'
+  dependencyTypeName?: string; // eq: google.protobuf.Empty. Only has value if DependencyType.EXTERNAL
+  // If there is an external reference file,
+  // the referenced file address will be written
+  resolvedPath?: string;
+  aliasName?: string; //
 
   // map<keyType, type>
   map?: boolean;
   keyType?: string;
+}
+
+export interface PropertySignature {
+  name: string;
+  comment?: string;
+  propertyType: PropertyType;
 
   // arr[]
   repeated?: boolean;
@@ -63,10 +75,6 @@ export interface PropertySignature {
   optional?: boolean;
   defaultValue?: boolean;
   jsonName?: string;
-
-  // If there is an external reference file,
-  // the referenced file address will be written
-  resolvedPath?: string;
 }
 
 export interface InterfaceModule {
@@ -91,12 +99,10 @@ export interface ApiModule {
 export interface ApiFunction {
   name: string;
   comment?: string;
-  req?: string;
-  reqResolvedPath: string;
+  req: PropertyType;
   url: string;
   redirectUrl?: string;
-  res: string;
-  resResolvedPath: string;
+  res: PropertyType;
   method: "get" | "post" | "put" | "patch" | "delete";
 }
 

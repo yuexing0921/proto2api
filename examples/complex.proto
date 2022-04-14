@@ -5,7 +5,7 @@ package complex;
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/api.proto";
-
+import "enum.proto";
 
 enum Status {
     UNKNOWN = 0;
@@ -34,6 +34,9 @@ message InfoReq {
 
     // Externally dependent messages
     google.protobuf.Method method = 7;
+
+    // The externally introduced message has the same name as the current message
+    hello.Status helloStatus = 8;
     
 }
 message InfoResp {
@@ -58,7 +61,7 @@ service API {
     // asdfasdf
     // @redirect  /v1/post
     // asdfasdf
-    rpc RedirectDemo(InfoReq) returns (InfoResp) {
+    rpc RedirectDemo(InfoReq) returns (hello.InfoResp) {
         option (google.api.http) = {
             post: "/post"
         };

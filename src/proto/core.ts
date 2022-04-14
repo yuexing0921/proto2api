@@ -7,6 +7,7 @@ import {
   ApiModule,
   InterfaceModule,
   DependencyType,
+  PropertyType,
   Import,
 } from "../apiInterface";
 
@@ -78,13 +79,17 @@ export function typeGenInterface(item: protoJs.Type): Interface {
 
     const member: PropertySignature = {
       name: field.name,
-      type: field.type,
-      dependencyType: DependencyType.SYSTEM,
+      propertyType: {
+        type: field.type,
+        dependencyTypeName: "",
+        dependencyType: DependencyType.SYSTEM,
+        resolvedPath: "",
+        // @ts-ignorets
+        keyType: field.keyType,
+        map: field.map,
+      },
       comment: field.comment,
 
-      // @ts-ignorets
-      keyType: field.keyType,
-      map: field.map,
       repeated: field.repeated,
       optional: field.options ? field.options["proto3_optional"] : false,
       jsonName: field.options ? field.options["json_name"] : undefined,
@@ -98,68 +103,56 @@ export function typeGenInterface(item: protoJs.Type): Interface {
       // }
       // member.type = field.type.match(/google/) ? field.resolvedType.name : '{}'
       // write reference path
-      member.type = getGoogleCommon(field.type) || field.resolvedType.name;
-      member.resolvedPath =
+      const type = getGoogleCommon(field.type) || field.resolvedType.name;
+      const resolvedPath =
         field.filename === field.resolvedType.filename
           ? ""
           : field.resolvedType.filename;
-
+      let dependencyType = DependencyType.SYSTEM;
+      let dependencyTypeName = "";
       if (field.filename === field.resolvedType.filename) {
         if (field.resolvedType.parent.name === item.name) {
-          member.dependencyType = DependencyType.INLINE;
+          dependencyType = DependencyType.INLINE;
         } else {
-          member.dependencyType = DependencyType.CURRENT;
+          dependencyType = DependencyType.CURRENT;
         }
       } else if (field.resolvedType.filename) {
-        member.dependencyType = DependencyType.EXTERNAL;
+        dependencyType = DependencyType.EXTERNAL;
+        dependencyTypeName = field.type;
       }
+      member.propertyType = {
+        type,
+        resolvedPath,
+        dependencyType,
+        dependencyTypeName,
+      };
     }
     result.members.push(member);
   }
 
   return result;
 }
-
-export function interfaceGenImport(
-  _interface: Interface,
-  arr: Import[],
-  apiModules: ApiModule[]
-): Import[] {
-  const insert = (k: { resolvedPath: string; type: string }) => {
-    const index = arr.findIndex((a) => k.resolvedPath === a.resolvedPath);
-    if (index > -1) {
-      !arr[index].importClause.includes(k.type) &&
-        arr[index].importClause.push(k.type);
-    } else {
-      arr.push({
-        importClause: [k.type],
-        resolvedPath: k.resolvedPath,
+export function insertImport(arr: Import[], k: PropertyType) {
+  const index = arr.findIndex((a) => k.resolvedPath === a.resolvedPath);
+  if (index > -1) {
+    // 如果import内已经有了该文件，但是type值还不存在的场合
+    !arr[index].importClause.find((i) => i.type === k.type) &&
+      arr[index].importClause.push({
+        type: k.type,
+        dependencyTypeName: k.dependencyTypeName,
       });
-    }
-  };
-  _interface.members.forEach((k) => {
-    if (k.dependencyType === DependencyType.EXTERNAL) {
-      insert({ resolvedPath: k.resolvedPath, type: k.type });
-    }
-  });
-  _interface.module?.interfaces?.forEach((i) => {
-    i.members.forEach((k) => {
-      if (k.dependencyType === DependencyType.EXTERNAL) {
-        insert({ resolvedPath: k.resolvedPath, type: k.type });
-      }
+  } else {
+    // 如果是一个全新的
+    arr.push({
+      importClause: [
+        {
+          type: k.type,
+          dependencyTypeName: k.dependencyTypeName,
+        },
+      ],
+      resolvedPath: k.resolvedPath,
     });
-  });
-  apiModules.forEach((k) =>
-    k.functions.forEach((f) => {
-      if (f.reqResolvedPath) {
-        insert({ resolvedPath: f.reqResolvedPath, type: f.req });
-      }
-      if (f.resResolvedPath) {
-        insert({ resolvedPath: f.resResolvedPath, type: f.res });
-      }
-    })
-  );
-  return arr;
+  }
 }
 
 export function enumGenEnum(item: protoJs.Enum): Enum {
@@ -200,17 +193,41 @@ const getHttpType = (options) => {
   };
 };
 
+function getApiFunctionPropertyType(k: protoJs.Method): {
+  req: PropertyType;
+  res: PropertyType;
+} {
+  const { resolvedRequestType: reqT, resolvedResponseType: resT } = k;
+  return {
+    req: {
+      type: getGoogleCommon(k.requestType) || reqT ? reqT.name : k.requestType,
+      dependencyType:
+        k.filename === reqT.filename
+          ? DependencyType.CURRENT
+          : DependencyType.EXTERNAL,
+      dependencyTypeName: k.requestType,
+      resolvedPath: reqT ? reqT.filename : "",
+    },
+    res: {
+      type:
+        getGoogleCommon(k.responseType) || resT ? resT.name : k.responseType,
+      dependencyType:
+        k.filename === resT.filename
+          ? DependencyType.CURRENT
+          : DependencyType.EXTERNAL,
+      dependencyTypeName: k.responseType,
+      resolvedPath: resT ? resT.filename : "",
+    },
+  };
+}
+
 export function serviceGenApiFunction(item: protoJs.Service): ApiModule {
   const result: ApiModule = {
     comment: item.comment,
     name: item.name,
     functions: item.methodsArray.map((k) => {
       const httpType = getHttpType(k.options);
-      // if (httpType.url == "/xxx") {
-      //   debugger;
-      // }
-      const resFn = k.resolvedRequestType.filename;
-      const repFn = k.resolvedResponseType.filename;
+
       let comment = k.comment || "";
       const redirectReg = comment.match(/\@redirect\s*(\S+)/);
       let redirectUrl = "";
@@ -221,21 +238,16 @@ export function serviceGenApiFunction(item: protoJs.Service): ApiModule {
           "@originUrl: " + httpType.url
         );
       }
+      const { req, res } = getApiFunctionPropertyType(k);
       return {
         name: k.name,
         comment,
-        req:
-          getGoogleCommon(k.requestType) || k.resolvedRequestType
-            ? k.resolvedRequestType.name
-            : k.requestType,
-        reqResolvedPath: resFn === k.filename ? "" : resFn,
+        req,
+        // reqResolvedPath: resFn === k.filename ? "" : resFn,
         url: httpType.url,
         redirectUrl,
-        res:
-          getGoogleCommon(k.responseType) || k.resolvedResponseType
-            ? k.resolvedResponseType.name
-            : k.responseType,
-        resResolvedPath: repFn === k.filename ? "" : repFn,
+        res,
+        // resResolvedPath: repFn === k.filename ? "" : repFn,
         method: httpType.method as any,
       };
     }),
