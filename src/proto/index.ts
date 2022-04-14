@@ -208,7 +208,8 @@ export function parseProto(protoFiles: string[], dependencyPath: string) {
   }
   // remove absolute path
   pbPaths.forEach((obj) => {
-    obj.target = obj.target.replace(apiDir, "");
+    const target = obj.target.replace(apiDir, "");
+    obj.target = target.match(/^\//) ? target : "/" + target;
   });
   return {
     root,
