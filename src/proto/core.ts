@@ -121,6 +121,7 @@ export function typeGenInterface(item: protoJs.Type): Interface {
         dependencyTypeName = field.type;
       }
       member.propertyType = {
+        ...member.propertyType,
         type,
         resolvedPath,
         dependencyType,

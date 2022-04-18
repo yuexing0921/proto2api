@@ -20,15 +20,25 @@ Usage: proto2api [options]
 Convert proto file to api file
 
 Options:
+Options:
   -V, --version         output the version number
   --debug               load code with ts-node for debug
-  -d, --dir <type>      directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto
-  -o, --output <type>   output api path
+  -d, --dir <type>      directory address of Protocol Buffers. eq: /path/pbdir
+                        or /path/hello.proto
+  -o, --output <type>   Output api path
+  --protoDir <type>     The root directory for loading proto files. By default,
+                        the directory folder named proto3|proto2 will be found.
+                        If it still does not exist, it will try to find it
+                        automatically, but the correctness is not guaranteed.
+                        (default: "")
   --apiName <type>      apiName (default: "webapi")
   --apiPath <type>      apiPath (default: "~/utils/api")
   --prefix <type>       api prefix path (default: "")
-  --depPath <type>      the address of the external dependency proto library. eq: /common/proto3 (default:"")
-  --ignore [ignore...]  ignore unnecessary generated pb files (default: "google|swagger")
+  --depPath <type>      the address of the external dependency proto library.
+                        eq: /common/proto3 (default: "")
+  --ignore [ignore...]  ignore unnecessary generated pb files (default:
+                        "google|swagger")
+  -h, --help            display help for command
   -h, --help            display help for command
 ```
 ## 参考文档

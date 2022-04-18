@@ -5,7 +5,7 @@ package complex;
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/api.proto";
-import "enum.proto";
+import "enum/enum.proto";
 
 enum Status {
     UNKNOWN = 0;

@@ -11,7 +11,7 @@ export * from "./utils";
 export interface Options {
   files: string[]; // proto file
   output: string;
-  protoDir?: string; // proto dir
+  protoDir: string; // proto dir
   apiName: string;
   apiPath: string;
   apiPrefixPath: string;

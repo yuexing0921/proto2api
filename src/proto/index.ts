@@ -1,5 +1,6 @@
 import protoJs from "protobufjs";
-import { join } from "path";
+import { join, resolve } from "path";
+import { existsSync } from "fs-extra";
 
 import { ApiFile, DependencyType } from "../apiInterface";
 
@@ -25,7 +26,11 @@ export function getProto2ApiData(options: Options) {
   log("Loading PB file ......");
   const apiFileMap: { [fileName: string]: ApiFile } = {};
 
-  const { root, pbPaths } = parseProto(options.files, options.depPath);
+  const { root, pbPaths } = parseProto(
+    options.protoDir,
+    options.files,
+    options.depPath
+  );
   for (const p of pbPaths) {
     if (options?.ignore?.test(p.target)) {
       continue;
@@ -152,9 +157,13 @@ export function pathPreprocessing(
   return apiFileMap;
 }
 
-export function parseProto(protoFiles: string[], dependencyPath: string) {
+export function parseProto(
+  protoDir: string,
+  protoFiles: string[],
+  dependencyPath: string
+) {
   const root = new protoJs.Root();
-  let apiDir = "";
+
   const pbPaths: Array<{
     target: string;
     path: string;
@@ -162,29 +171,38 @@ export function parseProto(protoFiles: string[], dependencyPath: string) {
   const notFoundList = [];
   // Parse the imported PB to get the absolute path
   root.resolvePath = (origin, target) => {
-    if (root.nested && root.files.length > 0 && !apiDir) {
+    if (!protoDir && root.nested && root.files.length > 0) {
       const keys = Object.keys(root.nested);
       const firstPath = root.files[0];
-      apiDir = firstPath.slice(0, firstPath.indexOf(keys[0]));
+      const reg = firstPath.match(new RegExp(`/${keys[0]}/`));
+      reg && (protoDir = firstPath.slice(0, reg.index));
     }
-
     let pathObj = {
       path: target,
       target,
     };
+    if (!existsSync(pathObj.path)) {
+      if (target.match(/^google/)) {
+        pathObj = recursionDirFindPath(
+          resolve(__dirname, "../../", "common"),
+          target
+        );
+      } else {
+        const originDir = origin.slice(0, origin.lastIndexOf("/"));
+        pathObj = recursionDirFindPath(protoDir || originDir, target);
+        // This happens when the pb directory has no upper directory
+        if (!protoDir) {
+          protoDir = originDir;
+        }
+      }
 
-    if (target.match(/^google/)) {
-      pathObj = recursionDirFindPath(process.cwd() + "/common", target);
-    } else {
-      pathObj = recursionDirFindPath(apiDir, target);
-    }
+      if (!pathObj.path && dependencyPath) {
+        pathObj = recursionDirFindPath(dependencyPath, target);
+      }
 
-    if (!pathObj.path && dependencyPath) {
-      pathObj = recursionDirFindPath(dependencyPath, target);
-    }
-
-    if (!pathObj.path && !notFoundList.find((k) => k === target)) {
-      notFoundList.push(target);
+      if (!pathObj.path && !notFoundList.find((k) => k === target)) {
+        notFoundList.push(target);
+      }
     }
 
     pbPaths.push(pathObj);
@@ -201,14 +219,16 @@ export function parseProto(protoFiles: string[], dependencyPath: string) {
   } catch (e) {
     console.error(e);
     if (notFoundList.length > 0) {
-      error("The following proto could not be found");
+      error(
+        "The following proto could not be found, if it is this project file, please try to specify --protoDir, if it is an external dependency file, please try to specify --depPath"
+      );
       console.log(notFoundList);
       console.log();
     }
   }
   // remove absolute path
   pbPaths.forEach((obj) => {
-    const target = obj.target.replace(apiDir, "");
+    const target = obj.target.replace(protoDir, "");
     obj.target = target.match(/^\//) ? target : "/" + target;
   });
   return {

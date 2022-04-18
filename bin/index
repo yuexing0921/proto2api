@@ -16,7 +16,11 @@ program
     "directory address of Protocol Buffers. eq: /path/pbdir or /path/hello.proto"
   )
   .requiredOption("-o, --output <type>", "Output api path")
-
+  .option(
+    "--protoDir <type>",
+    "The root directory for loading proto files. By default, the directory folder named proto3|proto2 will be found. If it still does not exist, it will try to find it automatically, but the correctness is not guaranteed.",
+    ""
+  )
   .option("--apiName <type>", "apiName", "webapi")
   .option("--apiPath <type>", "apiPath", "~/utils/api")
   .option("--prefix <type>", "api prefix path", "")
@@ -43,6 +47,18 @@ program
     } else {
       files = await getPathsDir(dirPath + "/**/*.proto");
     }
+    if (files.length === 0) {
+      console.error(
+        `The corresponding proto file was not found under the ${dirPath}`
+      );
+      return process.exit(1);
+    }
+
+    let protoDir = opt.protoDir;
+    if (!protoDir) {
+      const result = files[0].match(/\S*proto[2|3]{1}/);
+      protoDir = result ? result[0] : "";
+    }
 
     const devMode = opt.debug;
 
@@ -62,6 +78,7 @@ program
       apiName: opt.apiName,
       apiPath: opt.apiPath,
       apiPrefixPath: opt.prefix,
+      protoDir,
       depPath: opt.depPath,
       ignore,
     };
