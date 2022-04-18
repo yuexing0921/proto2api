@@ -36,7 +36,7 @@ message InfoReq {
     google.protobuf.Method method = 7;
 
     // The externally introduced message has the same name as the current message
-    hello.Status helloStatus = 8;
+    enum.Status helloStatus = 8;
     
 }
 message InfoResp {
@@ -61,7 +61,7 @@ service API {
     // asdfasdf
     // @redirect  /v1/post
     // asdfasdf
-    rpc RedirectDemo(InfoReq) returns (hello.InfoResp) {
+    rpc RedirectDemo(InfoReq) returns (enum.InfoResp) {
         option (google.api.http) = {
             post: "/post"
         };

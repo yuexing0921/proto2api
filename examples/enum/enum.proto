@@ -1,6 +1,6 @@
 
 syntax = "proto3";
-package hello;
+package enum;
 
 enum Status {
     UNKNOWN = 0;
