@@ -178,7 +178,7 @@ const httpType = {
   "(google.api.http).delete": "delete",
 };
 const getHttpType = (options) => {
-  const keys = Object.keys(options);
+  const keys = Object.keys(options || {});
   for (let k of keys) {
     if (httpType[k]) {
       return {
@@ -189,8 +189,8 @@ const getHttpType = (options) => {
   }
 
   return {
-    method: "No method was found",
-    url: "No corresponding URL was found",
+    method: "",
+    url: "",
   };
 };
 
@@ -239,6 +239,11 @@ export function serviceGenApiFunction(item: protoJs.Service): ApiModule {
           "@originUrl: " + httpType.url
         );
       }
+      const methodReg = comment.match(/\@method\s*(\S+)/);
+      let commentMethod = "post";
+      if (methodReg && methodReg.length) {
+        commentMethod = methodReg[1];
+      }
       const { req, res } = getApiFunctionPropertyType(k);
       return {
         name: k.name,
@@ -249,7 +254,7 @@ export function serviceGenApiFunction(item: protoJs.Service): ApiModule {
         redirectUrl,
         res,
         // resResolvedPath: repFn === k.filename ? "" : repFn,
-        method: httpType.method as any,
+        method: (httpType.method || commentMethod).toLowerCase(),
       };
     }),
   };

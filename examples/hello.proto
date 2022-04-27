@@ -34,4 +34,19 @@ service API {
             post: "/post"
         };
     }
+    
 }
+
+
+message GetRequest {
+    int64 id = 1;
+    int64 external_id = 2;
+    int32 external_type = 3;
+  }
+
+service API2 {
+    // @method get
+    // @redirect api/get-game
+    rpc GetGame(GetRequest) returns (InfoResp);
+    rpc BatchGetGame(GetRequest) returns (InfoResp);
+}  
