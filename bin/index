@@ -83,7 +83,6 @@ program
       ignore,
     };
 
-    console.log(options);
     if (devMode) {
       require("ts-node").register({
         project: `${__dirname}/../tsconfig.spec.json`,

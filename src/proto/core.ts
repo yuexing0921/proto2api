@@ -199,9 +199,12 @@ function getApiFunctionPropertyType(k: protoJs.Method): {
   res: PropertyType;
 } {
   const { resolvedRequestType: reqT, resolvedResponseType: resT } = k;
+  const reqType = getGoogleCommon(k.requestType);
+  const resType = getGoogleCommon(k.responseType);
+
   return {
     req: {
-      type: getGoogleCommon(k.requestType) || reqT ? reqT.name : k.requestType,
+      type: reqType || (reqT ? reqT.name : k.requestType),
       dependencyType:
         k.filename === reqT.filename
           ? DependencyType.CURRENT
@@ -210,8 +213,7 @@ function getApiFunctionPropertyType(k: protoJs.Method): {
       resolvedPath: reqT ? reqT.filename : "",
     },
     res: {
-      type:
-        getGoogleCommon(k.responseType) || resT ? resT.name : k.responseType,
+      type: resType || (resT ? resT.name : k.responseType),
       dependencyType:
         k.filename === resT.filename
           ? DependencyType.CURRENT

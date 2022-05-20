@@ -62,10 +62,16 @@ export function getProto2ApiData(options: Options) {
         apiFile.apiModules.push(serviceGenApiFunction(item as any));
         apiFile.apiModules.forEach((k) =>
           k.functions.forEach((f) => {
-            if (f.req.dependencyType === DependencyType.EXTERNAL) {
+            if (
+              f.req.resolvedPath &&
+              f.req.dependencyType === DependencyType.EXTERNAL
+            ) {
               insertImport(apiFile.imports, f.req);
             }
-            if (f.res.dependencyType === DependencyType.EXTERNAL) {
+            if (
+              f.res.resolvedPath &&
+              f.res.dependencyType === DependencyType.EXTERNAL
+            ) {
               insertImport(apiFile.imports, f.res);
             }
           })
