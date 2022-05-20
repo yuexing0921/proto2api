@@ -20,6 +20,7 @@ export interface Options {
 }
 
 export function main(options: Options) {
+  console.log(options);
   const apiFileMap = getProto2ApiData(options);
 
   const result = genCode({

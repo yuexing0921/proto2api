@@ -54,7 +54,7 @@ program
       return process.exit(1);
     }
 
-    let protoDir = opt.protoDir;
+    let protoDir = opt.protoDir || "";
     if (!protoDir) {
       const result = files[0].match(/\S*proto[2|3]{1}/);
       protoDir = result ? result[0] : "";
@@ -78,7 +78,7 @@ program
       apiName: opt.apiName,
       apiPath: opt.apiPath,
       apiPrefixPath: opt.prefix,
-      protoDir,
+      protoDir: resolve(protoDir),
       depPath: opt.depPath,
       ignore,
     };

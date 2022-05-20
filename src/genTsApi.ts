@@ -160,6 +160,24 @@ function getType(k: PropertyType, messageMap: { [key: string]: 1 }) {
   return type;
 }
 
+/**
+ * 生成ts的原始类型，方便后续做扩展
+ * @param k
+ * @returns
+ */
+const getComponentByPropertySignature = (
+  k: PropertySignature,
+  tsType: string
+) => {
+  let comment = k.comment || "";
+  if (k.defaultValue) {
+    comment += "@default=" + k.defaultValue;
+  }
+  if (tsType !== k.propertyType.type) {
+    comment += " @" + k.propertyType.type;
+  }
+  return comment;
+};
 export const renderPropertySignature = (
   ps: PropertySignature[],
   messageMap: { [key: string]: 1 }
@@ -173,7 +191,7 @@ export const renderPropertySignature = (
         optional = true;
       }
       return `${renderComment(
-        k.defaultValue ? k.comment + "\n @default " : k.comment
+        getComponentByPropertySignature(k, type)
       )}${name}${optional ? "?" : ""} : ${k.repeated ? type + "[]" : type};`;
     })
     .join("\n");

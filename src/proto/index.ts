@@ -179,7 +179,7 @@ export function parseProto(
     }
     let pathObj = {
       path: target,
-      target,
+      target: target.replace(protoDir, ""),
     };
     if (!existsSync(pathObj.path)) {
       if (target.match(/^google/)) {
@@ -189,7 +189,7 @@ export function parseProto(
         );
       } else {
         const originDir = origin.slice(0, origin.lastIndexOf("/"));
-        pathObj = recursionDirFindPath(protoDir || originDir, target);
+        pathObj = recursionDirFindPath(protoDir, target);
         // This happens when the pb directory has no upper directory
         if (!protoDir) {
           protoDir = originDir;

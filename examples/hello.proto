@@ -12,9 +12,8 @@ enum Status {
   }
 
 message InfoReq {
-    int32 id = 1; // id
-    string user_name = 2 [json_name = "userName"]; 
-    
+    int32 id = 1 [proto3_optional = true]; // id
+    string user_name = 2 ; //  optional
 }
 message InfoResp {
     int32 ret_code = 1 [json_name = "retCode"];
@@ -23,7 +22,7 @@ message InfoResp {
 }
 
 service API {
-    rpc GetDemo(google.protobuf.Empty) returns (InfoResp) {
+    rpc GetDemo(google.protobuf.Empty) returns (google.protobuf.Empty) {
         option (google.api.http) = {
             get: "/get"
             body: "*"
